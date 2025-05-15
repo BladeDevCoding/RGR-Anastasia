@@ -6,13 +6,13 @@
     }
   },
   "routes": [
-    { "src": "/api/styles.css", "dest": "/api/styles.css" },
-    { "src": "/api/images/(.*)", "dest": "/api/images/$1" },
-    { "src": "/api/foto/(.*)", "dest": "/api/foto/$1" },
-    { "src": "/api/foto_kafe/(.*)", "dest": "/api/foto_kafe/$1" },
-    { "src": "/api/foto_deserts/(.*)", "dest": "/api/foto_deserts/$1" },
-    { "src": "/(.*)", "dest": "/api/index.php" }
+    { "src": "/styles.css", "dest": "/styles.css" },
+    { "src": "/images/(.*)", "dest": "/images/$1" },
+    { "src": "/foto/(.*)", "dest": "/foto/$1" },
+    { "src": "/foto_kafe/(.*)", "dest": "/foto_kafe/$1" },
+    { "src": "/foto_deserts/(.*)", "dest": "/foto_deserts/$1" },
+    { "src": "/(.*)", "dest": "/index.php" }
   ],
-  "buildCommand": "mkdir -p public && cp -r api/styles.css public/api/",
+  "buildCommand": "mkdir -p public && cp -r api/styles.css public/",
   "outputDirectory": "public"
 }
