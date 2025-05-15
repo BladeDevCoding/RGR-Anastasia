@@ -7,13 +7,16 @@
   },
   "routes": [
     { "src": "/styles.css", "dest": "/api/styles.css" },
+    
+    { "src": "/foto/(.*)", "dest": "/public/foto/$1" },
+    { "src": "/foto_kafe/(.*)", "dest": "/public/foto_kafe/$1" },
+    { "src": "/foto_deserts/(.*)", "dest": "/public/foto_deserts/$1" },
+    
     { "src": "/images/(.*)", "dest": "/api/images/$1" },
     { "src": "/images/cats/(.*)", "dest": "/api/images/cats/$1" },
     { "src": "/images/kavarni/(.*)", "dest": "/api/images/kavarni/$1" },
     { "src": "/images/deserts/(.*)", "dest": "/api/images/deserts/$1" },
-    { "src": "/foto/(.*)", "dest": "/api/foto/$1" },
-    { "src": "/foto_kafe/(.*)", "dest": "/api/foto_kafe/$1" },
-    { "src": "/foto_deserts/(.*)", "dest": "/api/foto_deserts/$1" },
+    
     { "src": "/menu.php", "dest": "/api/menu.php" },
     { "src": "/kavarni.php", "dest": "/api/kavarni.php" },
     { "src": "/kotyky.php", "dest": "/api/kotyky.php" },
@@ -51,6 +54,6 @@
     { "src": "/api/images/(.*)", "dest": "/api/images/$1" },
     { "src": "/(.*)", "dest": "/api/index.php" }
   ],
-  "buildCommand": "mkdir -p public",
+  "buildCommand": "mkdir -p public/foto public/foto_kafe public/foto_deserts && cp -r api/foto/* public/foto/ && cp -r api/foto_kafe/* public/foto_kafe/ && cp -r api/foto_deserts/* public/foto_deserts/",
   "outputDirectory": "public"
 }
