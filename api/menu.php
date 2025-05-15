@@ -160,7 +160,7 @@ sort($categories);
                         <?php if($desert['dostupnyy']): ?>
                         <div class="menu-item">
                             <div class="menu-item-image">
-                                <img src="<?php echo $desert['foto_url']; ?>" alt="<?php echo htmlspecialchars($desert['nazva']); ?>" onerror="this.src='/api/foto_deserts/<?php echo strtolower(str_replace(' ', '_', $desert['nazva'])); ?>.jpg'">
+                                <img src="<?php echo $desert['foto_url']; ?>" alt="<?php echo htmlspecialchars($desert['nazva']); ?>" onerror="this.src='/foto_deserts/<?php echo str_replace(' ', '_', strtolower($desert['nazva'])); ?>.jpg'">
                             </div>
                             <div class="menu-item-info">
                                 <h3 class="menu-item-title"><?php echo htmlspecialchars($desert['nazva']); ?></h3>

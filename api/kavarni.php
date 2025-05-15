@@ -149,7 +149,7 @@ if ($kavyarnya_id > 0) {
                 </div>
                 
                 <div class="single-kavyarnya-image">
-                    <img src="<?php echo $single_kavyarnya['foto_url']; ?>" alt="<?php echo htmlspecialchars($single_kavyarnya['nazva']); ?>" onerror="this.src='/api/foto_kafe/<?php echo $single_kavyarnya['id']; ?>.jpg'">
+                    <img src="<?php echo $single_kavyarnya['foto_url']; ?>" alt="<?php echo htmlspecialchars($single_kavyarnya['nazva']); ?>" onerror="this.src='/foto_kafe/<?php echo $single_kavyarnya['id']; ?>.jpg'">
                 </div>
                 
                 <div class="kavyarnya-details">
@@ -168,7 +168,7 @@ if ($kavyarnya_id > 0) {
                     <?php foreach($kotyky_in_kavyarnya as $kotyk): ?>
                     <div class="kotyk-card">
                         <div class="kotyk-image">
-                            <img src="<?php echo $kotyk['foto_url']; ?>" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="this.src='/api/foto/<?php echo htmlspecialchars($kotyk['imya']); ?>.jpg'">
+                            <img src="/foto/<?php echo htmlspecialchars($kotyk['imya']); ?>.jpg" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="this.src='https://placehold.co/300x300?text=<?php echo urlencode(htmlspecialchars($kotyk['imya'])); ?>'">
                         </div>
                         <div class="kotyk-info">
                             <h3><?php echo htmlspecialchars($kotyk['imya']); ?></h3>
@@ -193,7 +193,7 @@ if ($kavyarnya_id > 0) {
                 <?php foreach($kavarni as $kavyarnya): ?>
                 <div class="kavyarnya-card">
                     <div class="kavyarnya-image">
-                        <img src="<?php echo $kavyarnya['foto_url']; ?>" alt="<?php echo htmlspecialchars($kavyarnya['nazva']); ?>" onerror="this.src='/api/foto_kafe/<?php echo $kavyarnya['id']; ?>.jpg'">
+                        <img src="<?php echo $kavyarnya['foto_url']; ?>" alt="<?php echo htmlspecialchars($kavyarnya['nazva']); ?>" onerror="this.src='/foto_kafe/<?php echo $kavyarnya['id']; ?>.jpg'">
                     </div>
                     <div class="kavyarnya-info">
                         <h2 class="kavyarnya-title"><?php echo htmlspecialchars($kavyarnya['nazva']); ?></h2>

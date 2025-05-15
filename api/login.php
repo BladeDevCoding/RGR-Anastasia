@@ -1,13 +1,33 @@
 <?php
+// Налаштування сесії для роботи з Vercel
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.cookie_lifetime', '3600'); // 1 година
 session_start();
 require_once 'connection.php';
 
 $error = '';
 
+// Перевіряємо параметр expired
+if (isset($_GET['expired']) && $_GET['expired'] == '1') {
+    $error = 'Ваша сесія закінчилася. Будь ласка, увійдіть знову.';
+}
+
 // Если пользователь уже авторизован, перенаправляем на админ-панель
 if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
-    header('Location: admin.php');
-    exit;
+    // Перевіряємо, чи вже не перенаправлялися на цю сторінку з admin.php
+    if (isset($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], 'admin.php') !== false) {
+        // Якщо були перенаправлені з admin.php, то сесія некоректна - очищаємо її
+        $_SESSION = array();
+        session_destroy();
+        session_start();
+        $error = 'Помилка авторизації. Будь ласка, увійдіть знову.';
+    } else {
+        header('Location: admin.php');
+        exit;
+    }
 }
 
 // Обработка формы входа
@@ -17,9 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Проверка учетных данных
     if ($login === 'Anastasias_Coffe' && $password === 'AskaChan274992') {
+        // Очищаємо стару сесію перш ніж створити нову
+        $_SESSION = array();
+        session_regenerate_id(true);
+        
         // Успешная авторизация
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = $login;
+        $_SESSION['auth_time'] = time();
         
         // Перенаправление на админ-панель
         header('Location: admin.php');

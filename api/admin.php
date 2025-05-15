@@ -1,12 +1,29 @@
 <?php
+// Налаштування сесії для роботи з Vercel
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.cookie_lifetime', '3600'); // 1 година
 session_start();
 require_once 'db_functions.php';
 
 // Проверка авторизации
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    // Если пользователь не авторизован, перенаправляем на страницу входа
+    // Перенаправляем на страницу входа
     header('Location: login.php');
     exit;
+} else {
+    // Перевіряємо час останньої авторизації (якщо минуло більше 1 години - вимагаємо повторного входу)
+    if (!isset($_SESSION['auth_time']) || (time() - $_SESSION['auth_time']) > 3600) {
+        $_SESSION = array();
+        session_destroy();
+        header('Location: login.php?expired=1');
+        exit;
+    }
+    
+    // Оновлюємо час авторизації
+    $_SESSION['auth_time'] = time();
 }
 
 // Получаем данные для административной панели

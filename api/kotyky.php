@@ -127,7 +127,7 @@ if ($kotyk_id > 0) {
                 </div>
                 
                 <div class="single-kotyk-image">
-                    <img src="<?php echo $single_kotyk['foto_url']; ?>" alt="<?php echo htmlspecialchars($single_kotyk['imya']); ?>" onerror="this.src='/api/foto/<?php echo htmlspecialchars($single_kotyk['imya']); ?>.jpg'">
+                    <img src="<?php echo $single_kotyk['foto_url']; ?>" alt="<?php echo htmlspecialchars($single_kotyk['imya']); ?>" onerror="if (this.src != '/foto/<?php echo htmlspecialchars($single_kotyk['imya']); ?>.jpg') this.src='/foto/<?php echo htmlspecialchars($single_kotyk['imya']); ?>.jpg'; else this.src='https://placehold.co/800x500?text=<?php echo urlencode(htmlspecialchars($single_kotyk['imya'])); ?>';">
                 </div>
                 
                 <div class="kotyk-details">
@@ -159,7 +159,7 @@ if ($kotyk_id > 0) {
                 <?php foreach($kotyky as $kotyk): ?>
                 <div class="kotyk-card">
                     <div class="kotyk-image">
-                        <img src="<?php echo $kotyk['foto_url']; ?>" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="this.src='/api/foto/<?php echo htmlspecialchars($kotyk['imya']); ?>.jpg'">
+                        <img src="<?php echo $kotyk['foto_url']; ?>" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="if (this.src != '/foto/<?php echo htmlspecialchars($kotyk['imya']); ?>.jpg') this.src='/foto/<?php echo htmlspecialchars($kotyk['imya']); ?>.jpg'; else this.src='https://placehold.co/300x250?text=<?php echo urlencode(htmlspecialchars($kotyk['imya'])); ?>';">
                     </div>
                     <div class="kotyk-info">
                         <h2 class="kotyk-title"><?php echo htmlspecialchars($kotyk['imya']); ?></h2>
