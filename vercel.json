@@ -11,7 +11,7 @@
     { "src": "/api/foto/(.*)", "dest": "/foto/$1" },
     { "src": "/api/foto_kafe/(.*)", "dest": "/foto_kafe/$1" },
     { "src": "/api/foto_deserts/(.*)", "dest": "/foto_deserts/$1" },
-    { "src": "/(.*)", "dest": "/index.php" }
+    { "src": "/(.*)", "dest": "/api/index.php" }
   ],
   "buildCommand": "mkdir -p public && cp -r api/styles.css public/api/",
   "outputDirectory": "public"
