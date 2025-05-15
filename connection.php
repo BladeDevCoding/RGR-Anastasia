@@ -1,6 +1,6 @@
 <?php
 // Шлях до директорії з JSON файлами
-$json_dir = __DIR__ . '/../data/';
+$json_dir = __DIR__ . '/data/';
 
 // Переконуємося, що директорія існує
 if (!file_exists($json_dir)) {
