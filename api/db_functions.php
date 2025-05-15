@@ -1,65 +1,89 @@
 <?php
 require_once 'connection.php';
 
-// Функція для підключення до бази даних
-function connectDB() {
-    global $host, $database, $user, $password, $port, $sslmode;
-    
-    $dsn = "pgsql:host=$host;port=$port;dbname=$database;sslmode=$sslmode";
-    
-    try {
-        $conn = new PDO($dsn, $user, $password);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $conn;
-    } catch (PDOException $e) {
-        die("Помилка підключення: " . $e->getMessage());
+// Базові функції для роботи з JSON файлами
+
+// Зчитування даних з JSON-файлу
+function readJsonFile($file) {
+    if (!file_exists($file)) {
+        file_put_contents($file, json_encode([]));
+        return [];
     }
+    
+    $content = file_get_contents($file);
+    return json_decode($content, true) ?: [];
+}
+
+// Запис даних у JSON-файл
+function writeJsonFile($file, $data) {
+    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    return true;
+}
+
+// Генерація нового ID
+function generateId($data) {
+    if (empty($data)) {
+        return 1;
+    }
+    
+    $maxId = 0;
+    foreach ($data as $item) {
+        if (isset($item['id']) && $item['id'] > $maxId) {
+            $maxId = $item['id'];
+        }
+    }
+    
+    return $maxId + 1;
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З КАВОЮ
 
 // Отримати всі види кави
 function getAllKava() {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM kava ORDER BY nazva");
+    global $files;
+    $data = readJsonFile($files['kava']);
     
-    $kava = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $kava[] = $row;
-        }
-    }
+    // Сортування за назвою
+    usort($data, function($a, $b) {
+        return strcmp($a['nazva'], $b['nazva']);
+    });
     
-    return $kava;
+    return $data;
 }
 
 // Отримати каву за ID
 function getKavaById($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kava']);
     
-    $stmt = $conn->prepare("SELECT * FROM kava WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    foreach ($data as $item) {
+        if ($item['id'] == $id) {
+            return $item;
+        }
+    }
     
-    $kava = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    return $kava;
+    return null;
 }
 
 // Додати новий вид кави
 function addKava($nazva, $opis, $tsina, $chas_prihotuvannya, $dostupna = 1) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kava']);
     
-    $stmt = $conn->prepare("INSERT INTO kava (nazva, opis, tsina, chas_prihotuvannya, dostupna) VALUES (:nazva, :opis, :tsina, :chas_prihotuvannya, :dostupna) RETURNING id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
-    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
-    $stmt->bindParam(':chas_prihotuvannya', $chas_prihotuvannya, PDO::PARAM_INT);
-    $stmt->bindParam(':dostupna', $dostupna, PDO::PARAM_INT);
+    $newId = generateId($data);
+    $newKava = [
+        'id' => $newId,
+        'nazva' => $nazva,
+        'opis' => $opis,
+        'tsina' => $tsina,
+        'chas_prihotuvannya' => $chas_prihotuvannya,
+        'dostupna' => $dostupna
+    ];
     
-    if ($stmt->execute()) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['id'];
+    $data[] = $newKava;
+    
+    if (writeJsonFile($files['kava'], $data)) {
+        return $newId;
     }
     
     return false;
@@ -67,125 +91,181 @@ function addKava($nazva, $opis, $tsina, $chas_prihotuvannya, $dostupna = 1) {
 
 // Оновити інформацію про каву
 function updateKava($id, $nazva, $opis, $tsina, $chas_prihotuvannya, $dostupna) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kava']);
     
-    $stmt = $conn->prepare("UPDATE kava SET nazva = :nazva, opis = :opis, tsina = :tsina, chas_prihotuvannya = :chas_prihotuvannya, dostupna = :dostupna WHERE id = :id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
-    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
-    $stmt->bindParam(':chas_prihotuvannya', $chas_prihotuvannya, PDO::PARAM_INT);
-    $stmt->bindParam(':dostupna', $dostupna, PDO::PARAM_INT);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    foreach ($data as $key => $item) {
+        if ($item['id'] == $id) {
+            $data[$key] = [
+                'id' => $id,
+                'nazva' => $nazva,
+                'opis' => $opis,
+                'tsina' => $tsina,
+                'chas_prihotuvannya' => $chas_prihotuvannya,
+                'dostupna' => $dostupna
+            ];
+            
+            return writeJsonFile($files['kava'], $data);
+        }
+    }
     
-    return $stmt->execute();
+    return false;
 }
 
 // Видалити каву
 function deleteKava($id) {
-    $conn = connectDB();
+    global $files;
     
-    // Спочатку видаляємо пов'язані записи
-    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE kava_id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    // Видаляємо пов'язані записи
+    // Видаляємо з kava_ingredienty
+    $kavaIngredienty = readJsonFile($files['kava_ingredienty']);
+    $kavaIngredienty = array_filter($kavaIngredienty, function($item) use ($id) {
+        return $item['kava_id'] != $id;
+    });
+    writeJsonFile($files['kava_ingredienty'], $kavaIngredienty);
     
-    $stmt = $conn->prepare("DELETE FROM retsepty WHERE kava_id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    // Видаляємо з retsepty
+    $retsepty = readJsonFile($files['retsepty']);
+    $retsepty = array_filter($retsepty, function($item) use ($id) {
+        return $item['kava_id'] != $id;
+    });
+    writeJsonFile($files['retsepty'], $retsepty);
     
     // Тепер видаляємо саму каву
-    $stmt = $conn->prepare("DELETE FROM kava WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $data = readJsonFile($files['kava']);
+    $newData = array_filter($data, function($item) use ($id) {
+        return $item['id'] != $id;
+    });
     
-    return $stmt->execute();
+    return writeJsonFile($files['kava'], array_values($newData));
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З ІНГРЕДІЄНТАМИ
 
 // Отримати всі інгредієнти
 function getAllIngredienty() {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM ingredienty ORDER BY nazva");
+    global $files;
+    $data = readJsonFile($files['ingredienty']);
     
-    $ingredienty = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $ingredienty[] = $row;
-        }
-    }
+    // Сортування за назвою
+    usort($data, function($a, $b) {
+        return strcmp($a['nazva'], $b['nazva']);
+    });
     
-    return $ingredienty;
+    return $data;
 }
 
 // Отримати інгредієнт за ID
 function getIngredientById($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['ingredienty']);
     
-    $stmt = $conn->prepare("SELECT * FROM ingredienty WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    foreach ($data as $item) {
+        if ($item['id'] == $id) {
+            return $item;
+        }
+    }
     
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    return null;
+}
+
+// Додати новий інгредієнт
+function addIngredient($nazva, $odynytsya) {
+    global $files;
+    $data = readJsonFile($files['ingredienty']);
+    
+    $newId = generateId($data);
+    $newIngredient = [
+        'id' => $newId,
+        'nazva' => $nazva,
+        'odynytsya' => $odynytsya
+    ];
+    
+    $data[] = $newIngredient;
+    
+    if (writeJsonFile($files['ingredienty'], $data)) {
+        return $newId;
+    }
+    
+    return false;
 }
 
 // Оновити інформацію про інгредієнт
 function updateIngredient($id, $nazva, $odynytsya) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['ingredienty']);
     
-    $stmt = $conn->prepare("UPDATE ingredienty SET nazva = :nazva, odynytsya = :odynytsya WHERE id = :id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':odynytsya', $odynytsya, PDO::PARAM_STR);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    foreach ($data as $key => $item) {
+        if ($item['id'] == $id) {
+            $data[$key] = [
+                'id' => $id,
+                'nazva' => $nazva,
+                'odynytsya' => $odynytsya
+            ];
+            
+            return writeJsonFile($files['ingredienty'], $data);
+        }
+    }
     
-    return $stmt->execute();
+    return false;
 }
 
 // Видалити інгредієнт
 function deleteIngredient($id) {
-    $conn = connectDB();
+    global $files;
     
-    // Спочатку видаляємо пов'язані записи
-    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE ingredient_id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    // Видаляємо пов'язані записи з kava_ingredienty
+    $kavaIngredienty = readJsonFile($files['kava_ingredienty']);
+    $kavaIngredienty = array_filter($kavaIngredienty, function($item) use ($id) {
+        return $item['ingredient_id'] != $id;
+    });
+    writeJsonFile($files['kava_ingredienty'], $kavaIngredienty);
     
     // Тепер видаляємо сам інгредієнт
-    $stmt = $conn->prepare("DELETE FROM ingredienty WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $data = readJsonFile($files['ingredienty']);
+    $newData = array_filter($data, function($item) use ($id) {
+        return $item['id'] != $id;
+    });
     
-    return $stmt->execute();
+    return writeJsonFile($files['ingredienty'], array_values($newData));
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З РЕЦЕПТАМИ
 
 // Отримати всі кроки рецепту для конкретної кави
 function getRetseptyByKavaId($kava_id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['retsepty']);
     
-    $stmt = $conn->prepare("SELECT * FROM retsepty WHERE kava_id = :kava_id ORDER BY krok");
-    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
-    $stmt->execute();
+    $filteredData = array_filter($data, function($item) use ($kava_id) {
+        return $item['kava_id'] == $kava_id;
+    });
     
-    $retsepty = [];
-    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $retsepty[] = $row;
-    }
+    // Сортування за кроком
+    usort($filteredData, function($a, $b) {
+        return $a['krok'] - $b['krok'];
+    });
     
-    return $retsepty;
+    return array_values($filteredData);
 }
 
 // Додати новий крок рецепту
 function addRetsept($kava_id, $krok, $instruktsiya) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['retsepty']);
     
-    $stmt = $conn->prepare("INSERT INTO retsepty (kava_id, krok, instruktsiya) VALUES (:kava_id, :krok, :instruktsiya) RETURNING id");
-    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
-    $stmt->bindParam(':krok', $krok, PDO::PARAM_INT);
-    $stmt->bindParam(':instruktsiya', $instruktsiya, PDO::PARAM_STR);
+    $newId = generateId($data);
+    $newRetsept = [
+        'id' => $newId,
+        'kava_id' => $kava_id,
+        'krok' => $krok,
+        'instruktsiya' => $instruktsiya
+    ];
     
-    if ($stmt->execute()) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['id'];
+    $data[] = $newRetsept;
+    
+    if (writeJsonFile($files['retsepty'], $data)) {
+        return $newId;
     }
     
     return false;
@@ -193,130 +273,150 @@ function addRetsept($kava_id, $krok, $instruktsiya) {
 
 // Оновити крок рецепту
 function updateRetsept($id, $krok, $instruktsiya) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['retsepty']);
     
-    $stmt = $conn->prepare("UPDATE retsepty SET krok = :krok, instruktsiya = :instruktsiya WHERE id = :id");
-    $stmt->bindParam(':krok', $krok, PDO::PARAM_INT);
-    $stmt->bindParam(':instruktsiya', $instruktsiya, PDO::PARAM_STR);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    foreach ($data as $key => $item) {
+        if ($item['id'] == $id) {
+            $data[$key]['krok'] = $krok;
+            $data[$key]['instruktsiya'] = $instruktsiya;
+            
+            return writeJsonFile($files['retsepty'], $data);
+        }
+    }
     
-    return $stmt->execute();
+    return false;
 }
 
 // Видалити крок рецепту
 function deleteRetsept($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['retsepty']);
     
-    $stmt = $conn->prepare("DELETE FROM retsepty WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $newData = array_filter($data, function($item) use ($id) {
+        return $item['id'] != $id;
+    });
     
-    return $stmt->execute();
+    return writeJsonFile($files['retsepty'], array_values($newData));
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З ІНГРЕДІЄНТАМИ КАВИ
 
 // Отримати всі інгредієнти для конкретної кави
 function getIngredientsForKava($kava_id) {
-    $conn = connectDB();
+    global $files;
+    $kavaIngredienty = readJsonFile($files['kava_ingredienty']);
+    $ingredienty = readJsonFile($files['ingredienty']);
     
-    $sql = "SELECT ki.kava_id, ki.ingredient_id, ki.kilkist, i.nazva, i.odynytsya 
-            FROM kava_ingredienty ki 
-            JOIN ingredienty i ON ki.ingredient_id = i.id 
-            WHERE ki.kava_id = :kava_id";
+    $result = [];
     
-    $stmt = $conn->prepare($sql);
-    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    $ingredients = [];
-    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $ingredients[] = $row;
+    foreach ($kavaIngredienty as $ki) {
+        if ($ki['kava_id'] == $kava_id) {
+            foreach ($ingredienty as $i) {
+                if ($i['id'] == $ki['ingredient_id']) {
+                    $result[] = [
+                        'kava_id' => $ki['kava_id'],
+                        'ingredient_id' => $ki['ingredient_id'],
+                        'kilkist' => $ki['kilkist'],
+                        'nazva' => $i['nazva'],
+                        'odynytsya' => $i['odynytsya']
+                    ];
+                    break;
+                }
+            }
+        }
     }
     
-    return $ingredients;
+    return $result;
 }
 
 // Додати інгредієнт до кави
 function addIngredientToKava($kava_id, $ingredient_id, $kilkist) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kava_ingredienty']);
     
     // Перевіряємо, чи вже існує такий запис
-    $stmt = $conn->prepare("SELECT * FROM kava_ingredienty WHERE kava_id = :kava_id AND ingredient_id = :ingredient_id");
-    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
-    $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    if ($stmt->fetch(PDO::FETCH_ASSOC)) {
-        // Якщо запис існує, оновлюємо кількість
-        $stmt = $conn->prepare("UPDATE kava_ingredienty SET kilkist = :kilkist WHERE kava_id = :kava_id AND ingredient_id = :ingredient_id");
-        $stmt->bindParam(':kilkist', $kilkist, PDO::PARAM_STR);
-        $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
-        $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
-    } else {
-        // Якщо запису немає, створюємо новий
-        $stmt = $conn->prepare("INSERT INTO kava_ingredienty (kava_id, ingredient_id, kilkist) VALUES (:kava_id, :ingredient_id, :kilkist)");
-        $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
-        $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
-        $stmt->bindParam(':kilkist', $kilkist, PDO::PARAM_STR);
+    $exists = false;
+    foreach ($data as $key => $item) {
+        if ($item['kava_id'] == $kava_id && $item['ingredient_id'] == $ingredient_id) {
+            $data[$key]['kilkist'] = $kilkist;
+            $exists = true;
+            break;
+        }
     }
     
-    return $stmt->execute();
+    if (!$exists) {
+        $data[] = [
+            'kava_id' => $kava_id,
+            'ingredient_id' => $ingredient_id,
+            'kilkist' => $kilkist
+        ];
+    }
+    
+    return writeJsonFile($files['kava_ingredienty'], $data);
 }
 
 // Видалити інгредієнт з кави
 function removeIngredientFromKava($kava_id, $ingredient_id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kava_ingredienty']);
     
-    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE kava_id = :kava_id AND ingredient_id = :ingredient_id");
-    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
-    $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
+    $newData = array_filter($data, function($item) use ($kava_id, $ingredient_id) {
+        return !($item['kava_id'] == $kava_id && $item['ingredient_id'] == $ingredient_id);
+    });
     
-    return $stmt->execute();
+    return writeJsonFile($files['kava_ingredienty'], array_values($newData));
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З ДЕСЕРТАМИ
 
 // Отримати всі десерти
 function getAllDeserty() {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM deserty ORDER BY nazva");
+    global $files;
+    $data = readJsonFile($files['deserty']);
     
-    $deserty = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $deserty[] = $row;
-        }
-    }
+    // Сортування за назвою
+    usort($data, function($a, $b) {
+        return strcmp($a['nazva'], $b['nazva']);
+    });
     
-    return $deserty;
+    return $data;
 }
 
 // Отримати десерт за ID
 function getDesertById($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['deserty']);
     
-    $stmt = $conn->prepare("SELECT * FROM deserty WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    foreach ($data as $item) {
+        if ($item['id'] == $id) {
+            return $item;
+        }
+    }
     
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    return null;
 }
 
 // Додати новий десерт
 function addDesert($nazva, $opis, $tsina, $vaha_gram, $dostupnyy = 1, $kategoria = null) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['deserty']);
     
-    $stmt = $conn->prepare("INSERT INTO deserty (nazva, opis, tsina, vaha_gram, dostupnyy, kategoria) VALUES (:nazva, :opis, :tsina, :vaha_gram, :dostupnyy, :kategoria) RETURNING id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
-    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
-    $stmt->bindParam(':vaha_gram', $vaha_gram, PDO::PARAM_INT);
-    $stmt->bindParam(':dostupnyy', $dostupnyy, PDO::PARAM_INT);
-    $stmt->bindParam(':kategoria', $kategoria, PDO::PARAM_STR);
+    $newId = generateId($data);
+    $newDesert = [
+        'id' => $newId,
+        'nazva' => $nazva,
+        'opis' => $opis,
+        'tsina' => $tsina,
+        'vaha_gram' => $vaha_gram,
+        'dostupnyy' => $dostupnyy,
+        'kategoria' => $kategoria
+    ];
     
-    if ($stmt->execute()) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['id'];
+    $data[] = $newDesert;
+    
+    if (writeJsonFile($files['deserty'], $data)) {
+        return $newId;
     }
     
     return false;
@@ -324,72 +424,88 @@ function addDesert($nazva, $opis, $tsina, $vaha_gram, $dostupnyy = 1, $kategoria
 
 // Оновити інформацію про десерт
 function updateDesert($id, $nazva, $opis, $tsina, $vaha_gram, $dostupnyy, $kategoria) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['deserty']);
     
-    $stmt = $conn->prepare("UPDATE deserty SET nazva = :nazva, opis = :opis, tsina = :tsina, vaha_gram = :vaha_gram, dostupnyy = :dostupnyy, kategoria = :kategoria WHERE id = :id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
-    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
-    $stmt->bindParam(':vaha_gram', $vaha_gram, PDO::PARAM_INT);
-    $stmt->bindParam(':dostupnyy', $dostupnyy, PDO::PARAM_INT);
-    $stmt->bindParam(':kategoria', $kategoria, PDO::PARAM_STR);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    foreach ($data as $key => $item) {
+        if ($item['id'] == $id) {
+            $data[$key] = [
+                'id' => $id,
+                'nazva' => $nazva,
+                'opis' => $opis,
+                'tsina' => $tsina,
+                'vaha_gram' => $vaha_gram,
+                'dostupnyy' => $dostupnyy,
+                'kategoria' => $kategoria
+            ];
+            
+            return writeJsonFile($files['deserty'], $data);
+        }
+    }
     
-    return $stmt->execute();
+    return false;
 }
 
 // Видалити десерт
 function deleteDesert($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['deserty']);
     
-    $stmt = $conn->prepare("DELETE FROM deserty WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $newData = array_filter($data, function($item) use ($id) {
+        return $item['id'] != $id;
+    });
     
-    return $stmt->execute();
+    return writeJsonFile($files['deserty'], array_values($newData));
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З КАВ'ЯРНЯМИ
 
 // Отримати всі кав'ярні
 function getAllKavyarni() {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM kav_yarni ORDER BY nazva");
+    global $files;
+    $data = readJsonFile($files['kav_yarni']);
     
-    $kavyarni = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $kavyarni[] = $row;
-        }
-    }
+    // Сортування за назвою
+    usort($data, function($a, $b) {
+        return strcmp($a['nazva'], $b['nazva']);
+    });
     
-    return $kavyarni;
+    return $data;
 }
 
 // Отримати кав'ярню за ID
 function getKavyarnyaById($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kav_yarni']);
     
-    $stmt = $conn->prepare("SELECT * FROM kav_yarni WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    foreach ($data as $item) {
+        if ($item['id'] == $id) {
+            return $item;
+        }
+    }
     
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    return null;
 }
 
 // Додати нову кав'ярню
 function addKavyarnya($nazva, $adresa, $telefon, $grafik_roboty, $opys) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kav_yarni']);
     
-    $stmt = $conn->prepare("INSERT INTO kav_yarni (nazva, adresa, telefon, grafik_roboty, opys) VALUES (:nazva, :adresa, :telefon, :grafik_roboty, :opys) RETURNING id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':adresa', $adresa, PDO::PARAM_STR);
-    $stmt->bindParam(':telefon', $telefon, PDO::PARAM_STR);
-    $stmt->bindParam(':grafik_roboty', $grafik_roboty, PDO::PARAM_STR);
-    $stmt->bindParam(':opys', $opys, PDO::PARAM_STR);
+    $newId = generateId($data);
+    $newKavyarnya = [
+        'id' => $newId,
+        'nazva' => $nazva,
+        'adresa' => $adresa,
+        'telefon' => $telefon,
+        'grafik_roboty' => $grafik_roboty,
+        'opys' => $opys
+    ];
     
-    if ($stmt->execute()) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['id'];
+    $data[] = $newKavyarnya;
+    
+    if (writeJsonFile($files['kav_yarni'], $data)) {
+        return $newId;
     }
     
     return false;
@@ -397,109 +513,127 @@ function addKavyarnya($nazva, $adresa, $telefon, $grafik_roboty, $opys) {
 
 // Оновити інформацію про кав'ярню
 function updateKavyarnya($id, $nazva, $adresa, $telefon, $grafik_roboty, $opys) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kav_yarni']);
     
-    $stmt = $conn->prepare("UPDATE kav_yarni SET nazva = :nazva, adresa = :adresa, telefon = :telefon, grafik_roboty = :grafik_roboty, opys = :opys WHERE id = :id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':adresa', $adresa, PDO::PARAM_STR);
-    $stmt->bindParam(':telefon', $telefon, PDO::PARAM_STR);
-    $stmt->bindParam(':grafik_roboty', $grafik_roboty, PDO::PARAM_STR);
-    $stmt->bindParam(':opys', $opys, PDO::PARAM_STR);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    foreach ($data as $key => $item) {
+        if ($item['id'] == $id) {
+            $data[$key] = [
+                'id' => $id,
+                'nazva' => $nazva,
+                'adresa' => $adresa,
+                'telefon' => $telefon,
+                'grafik_roboty' => $grafik_roboty,
+                'opys' => $opys
+            ];
+            
+            return writeJsonFile($files['kav_yarni'], $data);
+        }
+    }
     
-    return $stmt->execute();
+    return false;
 }
 
 // Видалити кав'ярню
 function deleteKavyarnya($id) {
-    $conn = connectDB();
+    global $files;
     
-    // Спочатку оновлюємо котиків, які живуть у цій кав'ярні
-    $stmt = $conn->prepare("UPDATE kotyky SET kav_yarnya_id = 1 WHERE kav_yarnya_id = :id"); // Переміщуємо котиків у першу кав'ярню
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    // Оновлюємо котиків, які живуть у цій кав'ярні
+    $kotyky = readJsonFile($files['kotyky']);
+    foreach ($kotyky as $key => $kotyk) {
+        if ($kotyk['kav_yarnya_id'] == $id) {
+            $kotyky[$key]['kav_yarnya_id'] = 1; // Переміщуємо котиків у першу кав'ярню
+        }
+    }
+    writeJsonFile($files['kotyky'], $kotyky);
     
     // Тепер видаляємо саму кав'ярню
-    $stmt = $conn->prepare("DELETE FROM kav_yarni WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $data = readJsonFile($files['kav_yarni']);
+    $newData = array_filter($data, function($item) use ($id) {
+        return $item['id'] != $id;
+    });
     
-    return $stmt->execute();
+    return writeJsonFile($files['kav_yarni'], array_values($newData));
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З КОТИКАМИ
 
 // Отримати всіх котиків
 function getAllKotyky() {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM kotyky ORDER BY imya");
+    global $files;
+    $data = readJsonFile($files['kotyky']);
     
-    $kotyky = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $kotyky[] = $row;
-        }
-    }
+    // Сортування за ім'ям
+    usort($data, function($a, $b) {
+        return strcmp($a['imya'], $b['imya']);
+    });
     
-    return $kotyky;
+    return $data;
 }
 
 // Отримати випадкових котиків
 function getRandomKotyky($limit = 3) {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM kotyky ORDER BY RANDOM() LIMIT $limit");
+    global $files;
+    $data = readJsonFile($files['kotyky']);
     
-    $kotyky = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $kotyky[] = $row;
-        }
-    }
+    // Перемішуємо масив
+    shuffle($data);
     
-    return $kotyky;
+    // Повертаємо обмежену кількість котиків
+    return array_slice($data, 0, $limit);
 }
 
 // Отримати котика за ID
 function getKotykById($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kotyky']);
     
-    $stmt = $conn->prepare("SELECT * FROM kotyky WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    foreach ($data as $item) {
+        if ($item['id'] == $id) {
+            return $item;
+        }
+    }
     
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    return null;
 }
 
 // Отримати котиків за ID кав'ярні
 function getKotykyByKavyarnyaId($kav_yarnya_id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kotyky']);
     
-    $stmt = $conn->prepare("SELECT * FROM kotyky WHERE kav_yarnya_id = :kav_yarnya_id ORDER BY imya");
-    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
-    $stmt->execute();
+    $filteredData = array_filter($data, function($item) use ($kav_yarnya_id) {
+        return $item['kav_yarnya_id'] == $kav_yarnya_id;
+    });
     
-    $kotyky = [];
-    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $kotyky[] = $row;
-    }
+    // Сортування за ім'ям
+    usort($filteredData, function($a, $b) {
+        return strcmp($a['imya'], $b['imya']);
+    });
     
-    return $kotyky;
+    return array_values($filteredData);
 }
 
 // Додати нового котика
 function addKotyk($imya, $vik, $stat, $poroda, $harakterystyka, $kav_yarnya_id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kotyky']);
     
-    $stmt = $conn->prepare("INSERT INTO kotyky (imya, vik, stat, poroda, harakterystyka, kav_yarnya_id) VALUES (:imya, :vik, :stat, :poroda, :harakterystyka, :kav_yarnya_id) RETURNING id");
-    $stmt->bindParam(':imya', $imya, PDO::PARAM_STR);
-    $stmt->bindParam(':vik', $vik, PDO::PARAM_INT);
-    $stmt->bindParam(':stat', $stat, PDO::PARAM_STR);
-    $stmt->bindParam(':poroda', $poroda, PDO::PARAM_STR);
-    $stmt->bindParam(':harakterystyka', $harakterystyka, PDO::PARAM_STR);
-    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
+    $newId = generateId($data);
+    $newKotyk = [
+        'id' => $newId,
+        'imya' => $imya,
+        'vik' => $vik,
+        'stat' => $stat,
+        'poroda' => $poroda,
+        'harakterystyka' => $harakterystyka,
+        'kav_yarnya_id' => $kav_yarnya_id
+    ];
     
-    if ($stmt->execute()) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['id'];
+    $data[] = $newKotyk;
+    
+    if (writeJsonFile($files['kotyky'], $data)) {
+        return $newId;
     }
     
     return false;
@@ -507,90 +641,108 @@ function addKotyk($imya, $vik, $stat, $poroda, $harakterystyka, $kav_yarnya_id) 
 
 // Оновити інформацію про котика
 function updateKotyk($id, $imya, $vik, $stat, $poroda, $harakterystyka, $kav_yarnya_id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kotyky']);
     
-    $stmt = $conn->prepare("UPDATE kotyky SET imya = :imya, vik = :vik, stat = :stat, poroda = :poroda, harakterystyka = :harakterystyka, kav_yarnya_id = :kav_yarnya_id WHERE id = :id");
-    $stmt->bindParam(':imya', $imya, PDO::PARAM_STR);
-    $stmt->bindParam(':vik', $vik, PDO::PARAM_INT);
-    $stmt->bindParam(':stat', $stat, PDO::PARAM_STR);
-    $stmt->bindParam(':poroda', $poroda, PDO::PARAM_STR);
-    $stmt->bindParam(':harakterystyka', $harakterystyka, PDO::PARAM_STR);
-    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    foreach ($data as $key => $item) {
+        if ($item['id'] == $id) {
+            $data[$key] = [
+                'id' => $id,
+                'imya' => $imya,
+                'vik' => $vik,
+                'stat' => $stat,
+                'poroda' => $poroda,
+                'harakterystyka' => $harakterystyka,
+                'kav_yarnya_id' => $kav_yarnya_id
+            ];
+            
+            return writeJsonFile($files['kotyky'], $data);
+        }
+    }
     
-    return $stmt->execute();
+    return false;
 }
 
 // Видалити котика
 function deleteKotyk($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['kotyky']);
     
-    $stmt = $conn->prepare("DELETE FROM kotyky WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $newData = array_filter($data, function($item) use ($id) {
+        return $item['id'] != $id;
+    });
     
-    return $stmt->execute();
+    return writeJsonFile($files['kotyky'], array_values($newData));
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З АКЦІЯМИ
 
 // Отримати всі акції
 function getAllAktsiyi() {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM aktsiyi ORDER BY data_zakinchennya DESC");
+    global $files;
+    $data = readJsonFile($files['aktsiyi']);
     
-    $aktsiyi = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $aktsiyi[] = $row;
-        }
-    }
+    // Сортування за датою закінчення (від нової до старої)
+    usort($data, function($a, $b) {
+        return strtotime($b['data_zakinchennya']) - strtotime($a['data_zakinchennya']);
+    });
     
-    return $aktsiyi;
+    return $data;
 }
 
 // Отримати активні акції
 function getActiveAktsiyi() {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['aktsiyi']);
     $current_date = date('Y-m-d');
     
-    $stmt = $conn->prepare("SELECT * FROM aktsiyi WHERE data_pochatku <= :current_date AND data_zakinchennya >= :current_date ORDER BY data_zakinchennya");
-    $stmt->bindParam(':current_date', $current_date, PDO::PARAM_STR);
-    $stmt->execute();
+    // Фільтруємо активні акції
+    $filteredData = array_filter($data, function($item) use ($current_date) {
+        return $item['data_pochatku'] <= $current_date && $item['data_zakinchennya'] >= $current_date;
+    });
     
-    $aktsiyi = [];
-    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $aktsiyi[] = $row;
-    }
+    // Сортування за датою закінчення
+    usort($filteredData, function($a, $b) {
+        return strtotime($a['data_zakinchennya']) - strtotime($b['data_zakinchennya']);
+    });
     
-    return $aktsiyi;
+    return array_values($filteredData);
 }
 
 // Отримати акцію за ID
 function getAktsiyaById($id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['aktsiyi']);
     
-    $stmt = $conn->prepare("SELECT * FROM aktsiyi WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    foreach ($data as $item) {
+        if ($item['id'] == $id) {
+            return $item;
+        }
+    }
     
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    return null;
 }
 
 // Додати нову акцію
 function addAktsiya($nazva, $opis, $znyzhka, $data_pochatku, $data_zakinchennya, $kav_yarnya_id = null) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['aktsiyi']);
     
-    $stmt = $conn->prepare("INSERT INTO aktsiyi (nazva, opis, znyzhka, data_pochatku, data_zakinchennya, kav_yarnya_id) VALUES (:nazva, :opis, :znyzhka, :data_pochatku, :data_zakinchennya, :kav_yarnya_id) RETURNING id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
-    $stmt->bindParam(':znyzhka', $znyzhka, PDO::PARAM_STR);
-    $stmt->bindParam(':data_pochatku', $data_pochatku, PDO::PARAM_STR);
-    $stmt->bindParam(':data_zakinchennya', $data_zakinchennya, PDO::PARAM_STR);
-    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
+    $newId = generateId($data);
+    $newAktsiya = [
+        'id' => $newId,
+        'nazva' => $nazva,
+        'opis' => $opis,
+        'znyzhka' => $znyzhka,
+        'data_pochatku' => $data_pochatku,
+        'data_zakinchennya' => $data_zakinchennya,
+        'kav_yarnya_id' => $kav_yarnya_id
+    ];
     
-    if ($stmt->execute()) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['id'];
+    $data[] = $newAktsiya;
+    
+    if (writeJsonFile($files['aktsiyi'], $data)) {
+        return $newId;
     }
     
     return false;
@@ -598,61 +750,37 @@ function addAktsiya($nazva, $opis, $znyzhka, $data_pochatku, $data_zakinchennya,
 
 // Оновити інформацію про акцію
 function updateAktsiya($id, $nazva, $opis, $znyzhka, $data_pochatku, $data_zakinchennya, $kav_yarnya_id) {
-    $conn = connectDB();
+    global $files;
+    $data = readJsonFile($files['aktsiyi']);
     
-    $stmt = $conn->prepare("UPDATE aktsiyi SET nazva = :nazva, opis = :opis, znyzhka = :znyzhka, data_pochatku = :data_pochatku, data_zakinchennya = :data_zakinchennya, kav_yarnya_id = :kav_yarnya_id WHERE id = :id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
-    $stmt->bindParam(':znyzhka', $znyzhka, PDO::PARAM_STR);
-    $stmt->bindParam(':data_pochatku', $data_pochatku, PDO::PARAM_STR);
-    $stmt->bindParam(':data_zakinchennya', $data_zakinchennya, PDO::PARAM_STR);
-    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    
-    return $stmt->execute();
-}
-
-// Видалити акцію
-function deleteAktsiya($id) {
-    $conn = connectDB();
-    
-    $stmt = $conn->prepare("DELETE FROM aktsiyi WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    
-    return $stmt->execute();
-}
-
-// ФУНКЦІЇ ДЛЯ РОБОТИ З ІНГРЕДІЄНТАМИ
-
-// Отримати всі інгредієнти
-function getAllIngredients() {
-    $conn = connectDB();
-    $stmt = $conn->query("SELECT * FROM ingredienty ORDER BY nazva");
-    
-    $ingredienty = [];
-    if ($stmt) {
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $ingredienty[] = $row;
+    foreach ($data as $key => $item) {
+        if ($item['id'] == $id) {
+            $data[$key] = [
+                'id' => $id,
+                'nazva' => $nazva,
+                'opis' => $opis,
+                'znyzhka' => $znyzhka,
+                'data_pochatku' => $data_pochatku,
+                'data_zakinchennya' => $data_zakinchennya,
+                'kav_yarnya_id' => $kav_yarnya_id
+            ];
+            
+            return writeJsonFile($files['aktsiyi'], $data);
         }
-    }
-    
-    return $ingredienty;
-}
-
-// Додати новий інгредієнт
-function addIngredient($nazva, $odynytsya) {
-    $conn = connectDB();
-    
-    $stmt = $conn->prepare("INSERT INTO ingredienty (nazva, odynytsya) VALUES (:nazva, :odynytsya) RETURNING id");
-    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
-    $stmt->bindParam(':odynytsya', $odynytsya, PDO::PARAM_STR);
-    
-    if ($stmt->execute()) {
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['id'];
     }
     
     return false;
 }
 
+// Видалити акцію
+function deleteAktsiya($id) {
+    global $files;
+    $data = readJsonFile($files['aktsiyi']);
+    
+    $newData = array_filter($data, function($item) use ($id) {
+        return $item['id'] != $id;
+    });
+    
+    return writeJsonFile($files['aktsiyi'], array_values($newData));
+}
 ?>
