@@ -1,0 +1,486 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Хост: 127.0.0.1
+-- Время создания: Май 14 2025 г., 23:13
+-- Версия сервера: 10.4.32-MariaDB
+-- Версия PHP: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- База данных: `kitykoffe`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `aktsiyi`
+--
+
+CREATE TABLE `aktsiyi` (
+  `id` int(11) NOT NULL,
+  `nazva` varchar(100) NOT NULL,
+  `opis` text DEFAULT NULL,
+  `znyzhka` decimal(5,2) DEFAULT NULL,
+  `data_pochatku` date DEFAULT NULL,
+  `data_zakinchennya` date DEFAULT NULL,
+  `kav_yarnya_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `aktsiyi`
+--
+
+INSERT INTO `aktsiyi` (`id`, `nazva`, `opis`, `znyzhka`, `data_pochatku`, `data_zakinchennya`, `kav_yarnya_id`) VALUES
+(1, 'Знижка на все 10%', 'До дня народження мережі', 10.00, '2023-11-01', '2023-11-30', NULL),
+(2, 'Кава + десерт = -15%', 'Комбо пропозиція у всіх кав\'ярнях', 15.00, '2023-11-01', '2023-12-31', NULL),
+(3, 'День кіта', 'Знижка 20% на все у кав\'ярні з котами', 20.00, '2023-11-17', '2023-11-17', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `deserty`
+--
+
+CREATE TABLE `deserty` (
+  `id` int(11) NOT NULL,
+  `nazva` varchar(50) NOT NULL,
+  `opis` text DEFAULT NULL,
+  `tsina` decimal(6,2) NOT NULL,
+  `vaha_gram` int(11) DEFAULT NULL,
+  `dostupnyy` tinyint(1) DEFAULT 1,
+  `kategoria` varchar(30) DEFAULT NULL,
+  `foto_url` varchar(255) DEFAULT NULL COMMENT 'Путь к фото десерта'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `deserty`
+--
+
+INSERT INTO `deserty` (`id`, `nazva`, `opis`, `tsina`, `vaha_gram`, `dostupnyy`, `kategoria`, `foto_url`) VALUES
+(1, 'Тірамісу', 'Класичний італійський десерт з кави', 120.00, 150, 1, 'Торти', 'http://localhost/mysite/PTP/foto_deserts/tiramisu.jpg'),
+(2, 'Чізкейк Нью-Йорк', 'Ніжний сирний десерт на основі вершкового сиру', 110.00, 120, 1, 'Торти', 'http://localhost/mysite/PTP/foto_deserts/new_work_cheese cake.jpg'),
+(3, 'Макарун', 'Французький мигдалевий печиво з начинкою', 35.00, 25, 1, 'Печиво', 'http://localhost/mysite/PTP/foto_deserts/makaruns.jpg'),
+(4, 'Круасан з мигдалем', 'Смачний випічка з мигдалевою начинкою', 45.00, 80, 1, 'Випічка', 'http://localhost/mysite/PTP/foto_deserts/kruasan_migdal.jpg'),
+(5, 'Шоколадний фондан', 'Теплий шоколадний кекс з рідкою серединкою', 95.00, 100, 1, 'Десерти', 'http://localhost/mysite/PTP/foto_deserts/chocolate_fonda n.jpg');
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `ingredienty`
+--
+
+CREATE TABLE `ingredienty` (
+  `id` int(11) NOT NULL,
+  `nazva` varchar(50) NOT NULL,
+  `odynytsya` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `ingredienty`
+--
+
+INSERT INTO `ingredienty` (`id`, `nazva`, `odynytsya`) VALUES
+(1, 'Кава мелена', 'г'),
+(2, 'Вода', 'мл'),
+(3, 'Молоко', 'мл'),
+(4, 'Цукор', 'г'),
+(5, 'Шоколад', 'г'),
+(6, 'Збиті вершки', 'г'),
+(7, 'Кориця', 'г'),
+(8, 'Ванільний сироп', 'мл'),
+(9, 'Карамельний сироп', 'мл');
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `kava`
+--
+
+CREATE TABLE `kava` (
+  `id` int(11) NOT NULL,
+  `nazva` varchar(50) NOT NULL,
+  `opis` text DEFAULT NULL,
+  `tsina` decimal(6,2) NOT NULL,
+  `chas_prihotuvannya` int(11) DEFAULT NULL COMMENT 'Час приготування в секундах',
+  `dostupna` tinyint(1) DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `kava`
+--
+
+INSERT INTO `kava` (`id`, `nazva`, `opis`, `tsina`, `chas_prihotuvannya`, `dostupna`) VALUES
+(1, 'Еспресо', 'Класична міцна кава', 40.00, 60, 1),
+(2, 'Американо', 'Еспресо з додаванням гарячої води', 60.00, 90, 1),
+(3, 'Капучино', 'Еспресо з молоком та молочною піною', 55.00, 120, 1),
+(4, 'Лате', 'Кава з великою кількістю молока', 75.00, 150, 1),
+(5, 'Мокко', 'Кава з шоколадом та молоком', 100.00, 180, 1),
+(6, 'Раф', 'Кава з ванільним цукром та вершками', 100.00, 150, 1),
+(7, 'Флет Вайт', 'Подвійний еспресо з мікро-піною', 100.00, 120, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `kava_ingredienty`
+--
+
+CREATE TABLE `kava_ingredienty` (
+  `kava_id` int(11) NOT NULL,
+  `ingredient_id` int(11) NOT NULL,
+  `kilkist` decimal(6,2) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `kava_ingredienty`
+--
+
+INSERT INTO `kava_ingredienty` (`kava_id`, `ingredient_id`, `kilkist`) VALUES
+(1, 1, 9.00),
+(1, 2, 30.00),
+(2, 1, 9.00),
+(2, 2, 120.00),
+(3, 1, 9.00),
+(3, 2, 30.00),
+(3, 3, 100.00);
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `kav_yarni`
+--
+
+CREATE TABLE `kav_yarni` (
+  `id` int(11) NOT NULL,
+  `nazva` varchar(50) NOT NULL,
+  `adresa` varchar(100) NOT NULL,
+  `telefon` varchar(20) DEFAULT NULL,
+  `grafik_roboty` varchar(50) DEFAULT NULL,
+  `opys` text DEFAULT NULL,
+  `foto_url` varchar(255) DEFAULT NULL COMMENT 'Локальний шлях до фото кавʼярні'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `kav_yarni`
+--
+
+INSERT INTO `kav_yarni` (`id`, `nazva`, `adresa`, `telefon`, `grafik_roboty`, `opys`, `foto_url`) VALUES
+(1, 'KityKoffe Центр', 'вул. Хрещатик, 123, Черкаси', '+380671234567', '08:00-22:00', 'Головна кав\'ярня у центрі міста з гарним видом на Дніпро', 'http://localhost/mysite/PTP/foto_kafe/1.jpg'),
+(2, 'KityKoffe Соборний', 'пр. Соборний, 45, Черкаси', '+380672345678', '07:30-21:30', 'Затишна кав\'ярня біля собору', 'http://localhost/mysite/PTP/foto_kafe/2.jpg'),
+(3, 'KityKoffe Блакитний', 'вул. Блакитна, 67, Черкаси', '+380673456789', '09:00-23:00', 'Кав\'ярня у спальному районі з літньою терасою', 'http://localhost/mysite/PTP/foto_kafe/3.jpg'),
+(4, 'KityKoffe Молодіжний', 'бул. Шевченка, 89, Черкаси', '+380674567890', '08:00-22:00', 'Молодіжна кав\'ярня з настільними іграми', 'http://localhost/mysite/PTP/foto_kafe/4.jpg'),
+(5, 'KityKoffe Паркова', 'вул. Паркова, 12, Черкаси', '+380675678901', '08:00-21:00', 'Кав\'ярня у парку з можливістю відпочити на свіжому повітрі', 'http://localhost/mysite/PTP/foto_kafe/5.jpg');
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `kotyky`
+--
+
+CREATE TABLE `kotyky` (
+  `id` int(11) NOT NULL,
+  `imya` varchar(30) NOT NULL,
+  `vik` int(11) DEFAULT NULL,
+  `stat` enum('чоловіча','жіноча') DEFAULT NULL,
+  `poroda` varchar(30) DEFAULT NULL,
+  `harakterystyka` text DEFAULT NULL,
+  `kav_yarnya_id` int(11) NOT NULL,
+  `foto_url` varchar(255) DEFAULT NULL COMMENT 'Посилання на фото кота'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `kotyky`
+--
+
+INSERT INTO `kotyky` (`id`, `imya`, `vik`, `stat`, `poroda`, `harakterystyka`, `kav_yarnya_id`, `foto_url`) VALUES
+(1, 'Hoshi', 3, 'чоловіча', 'безпородистий', 'Чорно-білий кіт. Спокійний та ласкавий.', 1, 'https://i.imgur.com/JRqkX5a.jpg'),
+(2, 'Sakura', 2, 'жіноча', 'безпородистий', 'Руда кішка з пухнастим хвостом. Любить спати на підвіконні.', 1, 'https://i.imgur.com/Vx5sW9P.jpg'),
+(3, 'Tora', 4, 'чоловіча', 'безпородистий', 'Сірий смугастий кіт. Дуже грайливий та активний.', 1, 'https://i.imgur.com/8z4jQ6Y.jpg'),
+(4, 'Yuki', 1, 'жіноча', 'безпородистий', 'Біла кішка з рожевим носом. Сором\'язлива, але дуже ніжна.', 1, 'https://i.imgur.com/9tGpW3Z.jpg'),
+(5, 'Kuro', 5, 'чоловіча', 'японський бобтейл', 'Повністю чорний кіт з коротким хвостом. Загадковий та спостережливий.', 1, 'https://i.imgur.com/5mJ9h7D.jpg'),
+(6, 'Mochi', 2, 'чоловіча', 'безпородистий', 'Кремовий кіт з великими очима. Обожнює пестити.', 2, 'https://i.imgur.com/3Q2Lt9b.jpg'),
+(7, 'Aoi', 3, 'жіноча', 'безпородистий', 'Сіро-блакитна кішка. Любить спостерігати за відвідувачами.', 2, 'https://i.imgur.com/LwVp3Qk.jpg'),
+(8, 'Haru', 1, 'чоловіча', 'безпородистий', 'Руде смугастие кошеня. Найбільший непосидюка.', 2, 'https://i.imgur.com/1hXz7fQ.jpg'),
+(9, 'Niko', 4, 'чоловіча', 'безпородистий', 'Двоколірний (чорно-білий) кіт. Має веселий характер.', 2, 'https://i.imgur.com/7sKtBQw.jpg'),
+(10, 'Momo', 2, 'жіноча', 'манчкин', 'Кішка з короткими лапками. Дуже ласкава та товариська.', 2, 'https://i.imgur.com/2vJZwqT.jpg'),
+(11, 'Riku', 3, 'жіноча', 'безпородистий', 'Сірий кіт з зеленими очима. Любить сидіти на колінах.', 3, 'https://i.imgur.com/4tGpX9y.jpg'),
+(12, 'Fuji', 5, 'чоловіча', 'безпородистий', 'Білий кіт з сірими плямами. Вальяжний та спокійний.', 3, 'https://i.imgur.com/6J9kL8f.jpg'),
+(13, 'Sora', 2, 'жіноча', 'безпородистий', 'Триколірна кішка. Дуже розумна та допитлива.', 3, 'https://i.imgur.com/9Y7qL2Z.jpg'),
+(14, 'Kenji', 4, 'чоловіча', 'безпородистий', 'Чорний кіт з білою грудкою. Має лідерські якості.', 3, 'https://i.imgur.com/JtR5v9X.jpg'),
+(15, 'Hana', 1, 'жіноча', 'шотландська висловуха', 'Сіра кішка з висячими вухами. Дуже мила та ласкава.', 3, 'https://i.imgur.com/1kLpQ9E.jpg'),
+(16, 'Tama', 2, 'жіноча', 'безпородистий', 'Руда кішка з білими лапками. Любить грати з м\'ячиком.', 4, 'https://i.imgur.com/3WqZ7Qd.jpg'),
+(17, 'Ren', 3, 'чоловіча', 'безпородистий', 'Сірий смугастий кіт. Має спокійний характер.', 4, 'https://i.imgur.com/5vHt8Jj.jpg'),
+(18, 'Kai', 1, 'чоловіча', 'безпородистий', 'Чорне кошеня з жовтими очима. Дуже енергійний.', 4, 'https://i.imgur.com/8kLpQ9E.jpg'),
+(19, 'Mizu', 4, 'жіноча', 'безпородистий', 'Біло-сіра кішка. Любить воду та може пити з крана.', 4, 'https://i.imgur.com/2vJZwqT.jpg'),
+(20, 'Sumi', 2, 'жіноча', 'перська', 'Пухнаста чорна кішка. Аристократична та спокійна.', 4, 'https://i.imgur.com/7sKtBQw.jpg'),
+(21, 'Taiki', 5, 'чоловіча', 'безпородистий', 'Великий рудий кіт. Дружелюбний до всіх відвідувачів.', 5, 'https://i.imgur.com/1hXz7fQ.jpg'),
+(22, 'Kiko', 2, 'жіноча', 'безпородистий', 'Чорно-біла кішка. Любить спати на стільцях.', 5, 'https://i.imgur.com/9tGpW3Z.jpg'),
+(23, 'Ryo', 3, 'чоловіча', 'безпородистий', 'Сірий кіт з зеленими очима. Має хист до дресирування.', 5, 'https://i.imgur.com/4tGpX9y.jpg'),
+(24, 'Suki', 1, 'жіноча', 'безпородистий', 'Біла кошеня з рожевим носом. Дуже грайлива.', 5, 'https://i.imgur.com/Vx5sW9P.jpg'),
+(25, 'Maru', 4, 'чоловіча', 'британська', 'Сірий пухнастий кіт. Обожнює, коли його чешуть.', 5, 'https://i.imgur.com/JRqkX5a.jpg');
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `menu`
+--
+
+CREATE TABLE `menu` (
+  `kav_yarnya_id` int(11) NOT NULL,
+  `produkt_type` enum('кава','десерт') NOT NULL,
+  `produkt_id` int(11) NOT NULL,
+  `dostupnist` tinyint(1) DEFAULT 1,
+  `dodatkova_tsina` decimal(6,2) DEFAULT 0.00
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `menu`
+--
+
+INSERT INTO `menu` (`kav_yarnya_id`, `produkt_type`, `produkt_id`, `dostupnist`, `dodatkova_tsina`) VALUES
+(1, 'кава', 1, 1, 0.00),
+(1, 'кава', 2, 1, 0.00),
+(1, 'кава', 3, 1, 0.00),
+(1, 'кава', 4, 1, 0.00),
+(1, 'кава', 5, 1, 0.00),
+(1, 'кава', 6, 1, 0.00),
+(1, 'кава', 7, 1, 0.00),
+(1, 'десерт', 1, 1, 0.00),
+(1, 'десерт', 2, 1, 0.00),
+(1, 'десерт', 3, 1, 0.00),
+(1, 'десерт', 4, 1, 0.00),
+(1, 'десерт', 5, 1, 0.00),
+(2, 'кава', 1, 1, 0.00),
+(2, 'кава', 2, 1, 0.00),
+(2, 'кава', 3, 1, 0.00),
+(2, 'кава', 4, 1, 0.00),
+(2, 'кава', 5, 1, 0.00),
+(2, 'кава', 6, 1, 0.00),
+(2, 'кава', 7, 1, 0.00),
+(2, 'десерт', 1, 1, 0.00),
+(2, 'десерт', 2, 1, 0.00),
+(2, 'десерт', 3, 1, 0.00),
+(2, 'десерт', 4, 1, 0.00),
+(2, 'десерт', 5, 1, 0.00),
+(3, 'кава', 1, 1, 0.00),
+(3, 'кава', 2, 1, 0.00),
+(3, 'кава', 3, 1, 0.00),
+(3, 'кава', 4, 1, 0.00),
+(3, 'кава', 5, 1, 0.00),
+(3, 'кава', 6, 1, 0.00),
+(3, 'кава', 7, 1, 0.00),
+(3, 'десерт', 1, 1, 0.00),
+(3, 'десерт', 2, 1, 0.00),
+(3, 'десерт', 3, 1, 0.00),
+(3, 'десерт', 4, 1, 0.00),
+(3, 'десерт', 5, 1, 0.00),
+(4, 'кава', 1, 1, 0.00),
+(4, 'кава', 2, 1, 0.00),
+(4, 'кава', 3, 1, 0.00),
+(4, 'кава', 4, 1, 0.00),
+(4, 'кава', 5, 1, 0.00),
+(4, 'кава', 6, 1, 0.00),
+(4, 'кава', 7, 1, 0.00),
+(4, 'десерт', 1, 1, 0.00),
+(4, 'десерт', 2, 1, 0.00),
+(4, 'десерт', 3, 1, 0.00),
+(4, 'десерт', 4, 1, 0.00),
+(4, 'десерт', 5, 1, 0.00),
+(5, 'кава', 1, 1, 0.00),
+(5, 'кава', 2, 1, 0.00),
+(5, 'кава', 3, 1, 0.00),
+(5, 'кава', 4, 1, 0.00),
+(5, 'кава', 5, 1, 0.00),
+(5, 'кава', 6, 1, 0.00),
+(5, 'кава', 7, 1, 0.00),
+(5, 'десерт', 1, 1, 0.00),
+(5, 'десерт', 2, 1, 0.00),
+(5, 'десерт', 3, 1, 0.00),
+(5, 'десерт', 4, 1, 0.00),
+(5, 'десерт', 5, 1, 0.00);
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `retsepty`
+--
+
+CREATE TABLE `retsepty` (
+  `id` int(11) NOT NULL,
+  `kava_id` int(11) NOT NULL,
+  `krok` int(11) NOT NULL,
+  `instruktsiya` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп данных таблицы `retsepty`
+--
+
+INSERT INTO `retsepty` (`id`, `kava_id`, `krok`, `instruktsiya`) VALUES
+(1, 1, 1, 'Прогрійте чашку'),
+(2, 1, 2, 'Помістіть 7-9 г меленої кави в холдер'),
+(3, 1, 3, 'Утрамбуйте каву темпером'),
+(4, 1, 4, 'Приготуйте 25-30 мл кави за 25-30 секунд'),
+(5, 3, 1, 'Приготуйте еспресо (30 мл)'),
+(6, 3, 2, 'Збийте 100 мл молока до утворення щільної піни'),
+(7, 3, 3, 'Акуратно влийте молоко в еспресо');
+
+--
+-- Индексы сохранённых таблиц
+--
+
+--
+-- Индексы таблицы `aktsiyi`
+--
+ALTER TABLE `aktsiyi`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `kav_yarnya_id` (`kav_yarnya_id`);
+
+--
+-- Индексы таблицы `deserty`
+--
+ALTER TABLE `deserty`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Индексы таблицы `ingredienty`
+--
+ALTER TABLE `ingredienty`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `nazva` (`nazva`);
+
+--
+-- Индексы таблицы `kava`
+--
+ALTER TABLE `kava`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Индексы таблицы `kava_ingredienty`
+--
+ALTER TABLE `kava_ingredienty`
+  ADD PRIMARY KEY (`kava_id`,`ingredient_id`),
+  ADD KEY `ingredient_id` (`ingredient_id`);
+
+--
+-- Индексы таблицы `kav_yarni`
+--
+ALTER TABLE `kav_yarni`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `adresa` (`adresa`);
+
+--
+-- Индексы таблицы `kotyky`
+--
+ALTER TABLE `kotyky`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `kav_yarnya_id` (`kav_yarnya_id`);
+
+--
+-- Индексы таблицы `menu`
+--
+ALTER TABLE `menu`
+  ADD PRIMARY KEY (`kav_yarnya_id`,`produkt_type`,`produkt_id`);
+
+--
+-- Индексы таблицы `retsepty`
+--
+ALTER TABLE `retsepty`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `kava_id` (`kava_id`);
+
+--
+-- AUTO_INCREMENT для сохранённых таблиц
+--
+
+--
+-- AUTO_INCREMENT для таблицы `aktsiyi`
+--
+ALTER TABLE `aktsiyi`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT для таблицы `deserty`
+--
+ALTER TABLE `deserty`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT для таблицы `ingredienty`
+--
+ALTER TABLE `ingredienty`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT для таблицы `kava`
+--
+ALTER TABLE `kava`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT для таблицы `kav_yarni`
+--
+ALTER TABLE `kav_yarni`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT для таблицы `kotyky`
+--
+ALTER TABLE `kotyky`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+
+--
+-- AUTO_INCREMENT для таблицы `retsepty`
+--
+ALTER TABLE `retsepty`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- Ограничения внешнего ключа сохраненных таблиц
+--
+
+--
+-- Ограничения внешнего ключа таблицы `aktsiyi`
+--
+ALTER TABLE `aktsiyi`
+  ADD CONSTRAINT `aktsiyi_ibfk_1` FOREIGN KEY (`kav_yarnya_id`) REFERENCES `kav_yarni` (`id`);
+
+--
+-- Ограничения внешнего ключа таблицы `kava_ingredienty`
+--
+ALTER TABLE `kava_ingredienty`
+  ADD CONSTRAINT `kava_ingredienty_ibfk_1` FOREIGN KEY (`kava_id`) REFERENCES `kava` (`id`),
+  ADD CONSTRAINT `kava_ingredienty_ibfk_2` FOREIGN KEY (`ingredient_id`) REFERENCES `ingredienty` (`id`);
+
+--
+-- Ограничения внешнего ключа таблицы `kotyky`
+--
+ALTER TABLE `kotyky`
+  ADD CONSTRAINT `kotyky_ibfk_1` FOREIGN KEY (`kav_yarnya_id`) REFERENCES `kav_yarni` (`id`);
+
+--
+-- Ограничения внешнего ключа таблицы `menu`
+--
+ALTER TABLE `menu`
+  ADD CONSTRAINT `menu_ibfk_1` FOREIGN KEY (`kav_yarnya_id`) REFERENCES `kav_yarni` (`id`);
+
+--
+-- Ограничения внешнего ключа таблицы `retsepty`
+--
+ALTER TABLE `retsepty`
+  ADD CONSTRAINT `retsepty_ibfk_1` FOREIGN KEY (`kava_id`) REFERENCES `kava` (`id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
