@@ -6,9 +6,11 @@
     }
   },
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.php"
-    }
+    { "src": "/api/styles.css", "dest": "/api/styles.css" },
+    { "src": "/api/images/(.*)", "dest": "/api/images/$1" },
+    { "src": "/api/foto/(.*)", "dest": "/api/foto/$1" },
+    { "src": "/api/foto_kafe/(.*)", "dest": "/api/foto_kafe/$1" },
+    { "src": "/api/foto_deserts/(.*)", "dest": "/api/foto_deserts/$1" },
+    { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }

@@ -1,0 +1,18 @@
+# Дозволити доступ до файлів CSS
+<FilesMatch "\.css$">
+    Header set Content-Type "text/css"
+</FilesMatch>
+
+# Налаштування для кешування
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 day"
+</IfModule>
+
+# Дозволити доступ до статичних файлів
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^styles\.css$ - [L]
+    RewriteRule ^images/ - [L]
+    RewriteRule ^foto/ - [L]
+</IfModule> 
