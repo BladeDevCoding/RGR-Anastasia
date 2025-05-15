@@ -127,7 +127,7 @@ if ($kotyk_id > 0) {
                 </div>
                 
                 <div class="single-kotyk-image">
-                    <img src="images/cats/<?php echo $single_kotyk['id']; ?>.jpg" alt="<?php echo htmlspecialchars($single_kotyk['imya']); ?>" onerror="this.src='https://via.placeholder.com/800x500?text=Котик'">
+                    <img src="/api/images/cats/<?php echo $single_kotyk['id']; ?>.jpg" alt="<?php echo htmlspecialchars($single_kotyk['imya']); ?>" onerror="this.src='https://placehold.co/800x500?text=Котик'">
                 </div>
                 
                 <div class="kotyk-details">
@@ -159,7 +159,7 @@ if ($kotyk_id > 0) {
                 <?php foreach($kotyky as $kotyk): ?>
                 <div class="kotyk-card">
                     <div class="kotyk-image">
-                        <img src="images/cats/<?php echo $kotyk['id']; ?>.jpg" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="this.src='https://via.placeholder.com/300x250?text=Котик'">
+                        <img src="/api/images/cats/<?php echo $kotyk['id']; ?>.jpg" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="this.src='https://placehold.co/300x250?text=Котик'">
                     </div>
                     <div class="kotyk-info">
                         <h2 class="kotyk-title"><?php echo htmlspecialchars($kotyk['imya']); ?></h2>
