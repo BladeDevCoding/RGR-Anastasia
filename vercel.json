@@ -1,7 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "/*.php": {
+    "*.php": {
       "runtime": "vercel-php@0.7.3"
     }
   },
@@ -13,6 +13,6 @@
     { "src": "/foto_deserts/(.*)", "dest": "/foto_deserts/$1" },
     { "src": "/(.*)", "dest": "/index.php" }
   ],
-  "buildCommand": "mkdir -p public && cp -r api/styles.css public/",
+  "buildCommand": "mkdir -p public && cp -r api/styles.css public/api/",
   "outputDirectory": "public"
 }
