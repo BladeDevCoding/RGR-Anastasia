@@ -25,6 +25,6 @@
     { "src": "/", "dest": "/api/index.php" },
     { "src": "/(.*).php", "dest": "/api/$1.php" }
   ],
-  "buildCommand": "mkdir -p public && cp -r api/styles.css public/api/",
+  "buildCommand": "mkdir -p public && mkdir -p public/api && cp -r api/styles.css public/ && cp -r api/images public/ && cp -r api/foto public/ && cp -r api/foto_kafe public/ && cp -r api/foto_deserts public/",
   "outputDirectory": "public"
 }

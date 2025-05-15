@@ -39,7 +39,7 @@ $randomKotyky = getRandomKotyky(3); // Получаем 3 случайных к�
                         <p>Ми пропонуємо широкий вибір кавових напоїв та смачних десертів, а наші пухнасті мешканці завжди раді новим знайомствам!</p>
                     </div>
                     <div class="about-image">
-                        <img src="images/cafe-interior.jpg" alt="Інтер'єр кав'ярні" onerror="this.src='https://via.placeholder.com/400x300?text=KityKoffe'">
+                        <img src="/images/cafe-interior.jpg" alt="Інтер'єр кав'ярні" onerror="this.src='https://via.placeholder.com/400x300?text=KityKoffe'">
                     </div>
                 </div>
             </div>
@@ -56,12 +56,12 @@ $randomKotyky = getRandomKotyky(3); // Получаем 3 случайных к�
                         <p><strong>Адреса:</strong> <?php echo htmlspecialchars($kavyarnya['adresa']); ?></p>
                         <p><strong>Графік:</strong> <?php echo htmlspecialchars($kavyarnya['grafik_roboty']); ?></p>
                         <p><?php echo htmlspecialchars(substr($kavyarnya['opys'], 0, 100)) . '...'; ?></p>
-                        <a href="kavarni.php?id=<?php echo $kavyarnya['id']; ?>" class="btn">Детальніше</a>
+                        <a href="/kavarni.php?id=<?php echo $kavyarnya['id']; ?>" class="btn">Детальніше</a>
                     </div>
                     <?php endforeach; ?>
                 </div>
                 <div class="center">
-                    <a href="kavarni.php" class="btn">Всі кав'ярні</a>
+                    <a href="/kavarni.php" class="btn">Всі кав'ярні</a>
                 </div>
             </div>
         </section>
@@ -74,17 +74,17 @@ $randomKotyky = getRandomKotyky(3); // Получаем 3 случайных к�
                     <?php foreach($randomKotyky as $kotyk): ?>
                     <div class="kotyk-card">
                         <div class="kotyk-image">
-                            <img src="images/cats/<?php echo $kotyk['id']; ?>.jpg" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="this.src='https://via.placeholder.com/300x300?text=Котик'">
+                            <img src="/images/cats/<?php echo $kotyk['id']; ?>.jpg" alt="<?php echo htmlspecialchars($kotyk['imya']); ?>" onerror="this.src='https://via.placeholder.com/300x300?text=Котик'">
                         </div>
                         <h3><?php echo htmlspecialchars($kotyk['imya']); ?></h3>
                         <p><strong>Вік:</strong> <?php echo $kotyk['vik']; ?> років</p>
                         <p><strong>Порода:</strong> <?php echo htmlspecialchars($kotyk['poroda']); ?></p>
-                        <a href="kotyky.php?id=<?php echo $kotyk['id']; ?>" class="btn">Познайомитись</a>
+                        <a href="/kotyky.php?id=<?php echo $kotyk['id']; ?>" class="btn">Познайомитись</a>
                     </div>
                     <?php endforeach; ?>
                 </div>
                 <div class="center">
-                    <a href="kotyky.php" class="btn">Всі котики</a>
+                    <a href="/kotyky.php" class="btn">Всі котики</a>
                 </div>
             </div>
         </section>
@@ -101,12 +101,12 @@ $randomKotyky = getRandomKotyky(3); // Получаем 3 случайных к�
                         <p><?php echo htmlspecialchars(substr($aktsiya['opis'], 0, 100)) . '...'; ?></p>
                         <p><strong>Знижка:</strong> <?php echo $aktsiya['znyzhka']; ?>%</p>
                         <p><strong>Діє до:</strong> <?php echo date('d.m.Y', strtotime($aktsiya['data_zakinchennya'])); ?></p>
-                        <a href="aktsiyi.php?id=<?php echo $aktsiya['id']; ?>" class="btn">Детальніше</a>
+                        <a href="/aktsiyi.php?id=<?php echo $aktsiya['id']; ?>" class="btn">Детальніше</a>
                     </div>
                     <?php endforeach; ?>
                 </div>
                 <div class="center">
-                    <a href="aktsiyi.php" class="btn">Всі акції</a>
+                    <a href="/aktsiyi.php" class="btn">Всі акції</a>
                 </div>
             </div>
         </section>
