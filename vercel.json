@@ -1,17 +1,29 @@
 {
   "version": 2,
   "functions": {
-    "*.php": {
+    "api/**/*.php": {
       "runtime": "vercel-php@0.7.3"
     }
   },
   "routes": [
-    { "src": "/styles.css", "dest": "/styles.css" },
-    { "src": "/images/(.*)", "dest": "/images/$1" },
-    { "src": "/foto/(.*)", "dest": "/foto/$1" },
-    { "src": "/foto_kafe/(.*)", "dest": "/foto_kafe/$1" },
-    { "src": "/foto_deserts/(.*)", "dest": "/foto_deserts/$1" },
-    { "src": "/(.*)", "dest": "/index.php" }
+    { "src": "/styles.css", "dest": "/api/styles.css" },
+    { "src": "/images/(.*)", "dest": "/api/images/$1" },
+    { "src": "/foto/(.*)", "dest": "/api/foto/$1" },
+    { "src": "/foto_kafe/(.*)", "dest": "/api/foto_kafe/$1" },
+    { "src": "/foto_deserts/(.*)", "dest": "/api/foto_deserts/$1" },
+    { "src": "/menu.php", "dest": "/api/menu.php" },
+    { "src": "/kavarni.php", "dest": "/api/kavarni.php" },
+    { "src": "/kotyky.php", "dest": "/api/kotyky.php" },
+    { "src": "/aktsiyi.php", "dest": "/api/aktsiyi.php" },
+    { "src": "/admin.php", "dest": "/api/admin.php" },
+    { "src": "/view_kavyarnya.php", "dest": "/api/view_kavyarnya.php" },
+    { "src": "/view_kotyk.php", "dest": "/api/view_kotyk.php" }, 
+    { "src": "/view_desert.php", "dest": "/api/view_desert.php" },
+    { "src": "/view_aktsiya.php", "dest": "/api/view_aktsiya.php" },
+    { "src": "/login.php", "dest": "/api/login.php" },
+    { "src": "/logout.php", "dest": "/api/logout.php" },
+    { "src": "/", "dest": "/api/index.php" },
+    { "src": "/(.*).php", "dest": "/api/$1.php" }
   ],
   "buildCommand": "mkdir -p public && cp -r api/styles.css public/api/",
   "outputDirectory": "public"

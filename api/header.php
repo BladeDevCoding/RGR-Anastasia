@@ -7,7 +7,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <header>
     <div class="container header-container">
         <div class="logo">
-            <a href="index.php"><img src="/api/foto/logo.png" alt="Логотип" class="logo-image" style="width:30px; height:30px; display:inline-block; vertical-align:middle;" onerror="console.log('Ошибка загрузки логотипа'); this.onerror=null; this.src='https://via.placeholder.com/30x30?text=KK'"> KityKoffe</a>
+            <a href="index.php"><img src="foto/logo.png" alt="Логотип" class="logo-image" style="width:30px; height:30px; display:inline-block; vertical-align:middle;" onerror="console.log('Ошибка загрузки логотипа'); this.onerror=null; this.src='https://via.placeholder.com/30x30?text=KK'"> KityKoffe</a>
         </div>
 
         <nav>
