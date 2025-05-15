@@ -3,17 +3,17 @@ require_once 'connection.php';
 
 // Функція для підключення до бази даних
 function connectDB() {
-    global $host, $database, $user, $password;
+    global $host, $database, $user, $password, $port, $sslmode;
     
-    $conn = new mysqli($host, $user, $password, $database);
+    $dsn = "pgsql:host=$host;port=$port;dbname=$database;sslmode=$sslmode";
     
-    if ($conn->connect_error) {
-        die("Помилка підключення: " . $conn->connect_error);
+    try {
+        $conn = new PDO($dsn, $user, $password);
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        return $conn;
+    } catch (PDOException $e) {
+        die("Помилка підключення: " . $e->getMessage());
     }
-    
-    $conn->set_charset("utf8");
-    
-    return $conn;
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З КАВОЮ
@@ -21,16 +21,15 @@ function connectDB() {
 // Отримати всі види кави
 function getAllKava() {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM kava ORDER BY nazva");
+    $stmt = $conn->query("SELECT * FROM kava ORDER BY nazva");
     
     $kava = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $kava[] = $row;
         }
     }
     
-    $conn->close();
     return $kava;
 }
 
@@ -38,15 +37,11 @@ function getAllKava() {
 function getKavaById($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM kava WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("SELECT * FROM kava WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    $kava = $result->fetch_assoc();
-    
-    $stmt->close();
-    $conn->close();
+    $kava = $stmt->fetch(PDO::FETCH_ASSOC);
     
     return $kava;
 }
@@ -55,31 +50,34 @@ function getKavaById($id) {
 function addKava($nazva, $opis, $tsina, $chas_prihotuvannya, $dostupna = 1) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("INSERT INTO kava (nazva, opis, tsina, chas_prihotuvannya, dostupna) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssdii", $nazva, $opis, $tsina, $chas_prihotuvannya, $dostupna);
+    $stmt = $conn->prepare("INSERT INTO kava (nazva, opis, tsina, chas_prihotuvannya, dostupna) VALUES (:nazva, :opis, :tsina, :chas_prihotuvannya, :dostupna) RETURNING id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
+    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
+    $stmt->bindParam(':chas_prihotuvannya', $chas_prihotuvannya, PDO::PARAM_INT);
+    $stmt->bindParam(':dostupna', $dostupna, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    $last_id = $conn->insert_id;
+    if ($stmt->execute()) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['id'];
+    }
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result ? $last_id : false;
+    return false;
 }
 
 // Оновити інформацію про каву
 function updateKava($id, $nazva, $opis, $tsina, $chas_prihotuvannya, $dostupna) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("UPDATE kava SET nazva = ?, opis = ?, tsina = ?, chas_prihotuvannya = ?, dostupna = ? WHERE id = ?");
-    $stmt->bind_param("ssdiis", $nazva, $opis, $tsina, $chas_prihotuvannya, $dostupna, $id);
+    $stmt = $conn->prepare("UPDATE kava SET nazva = :nazva, opis = :opis, tsina = :tsina, chas_prihotuvannya = :chas_prihotuvannya, dostupna = :dostupna WHERE id = :id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
+    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
+    $stmt->bindParam(':chas_prihotuvannya', $chas_prihotuvannya, PDO::PARAM_INT);
+    $stmt->bindParam(':dostupna', $dostupna, PDO::PARAM_INT);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити каву
@@ -87,25 +85,19 @@ function deleteKava($id) {
     $conn = connectDB();
     
     // Спочатку видаляємо пов'язані записи
-    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE kava_id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE kava_id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
-    $stmt->close();
     
-    $stmt = $conn->prepare("DELETE FROM retsepty WHERE kava_id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("DELETE FROM retsepty WHERE kava_id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
-    $stmt->close();
     
     // Тепер видаляємо саму каву
-    $stmt = $conn->prepare("DELETE FROM kava WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM kava WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З ІНГРЕДІЄНТАМИ
@@ -113,16 +105,15 @@ function deleteKava($id) {
 // Отримати всі інгредієнти
 function getAllIngredienty() {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM ingredienty ORDER BY nazva");
+    $stmt = $conn->query("SELECT * FROM ingredienty ORDER BY nazva");
     
     $ingredienty = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $ingredienty[] = $row;
         }
     }
     
-    $conn->close();
     return $ingredienty;
 }
 
@@ -130,32 +121,23 @@ function getAllIngredienty() {
 function getIngredientById($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM ingredienty WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("SELECT * FROM ingredienty WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    $ingredient = $result->fetch_assoc();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $ingredient;
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Оновити інформацію про інгредієнт
 function updateIngredient($id, $nazva, $odynytsya) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("UPDATE ingredienty SET nazva = ?, odynytsya = ? WHERE id = ?");
-    $stmt->bind_param("ssi", $nazva, $odynytsya, $id);
+    $stmt = $conn->prepare("UPDATE ingredienty SET nazva = :nazva, odynytsya = :odynytsya WHERE id = :id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':odynytsya', $odynytsya, PDO::PARAM_STR);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити інгредієнт
@@ -163,20 +145,15 @@ function deleteIngredient($id) {
     $conn = connectDB();
     
     // Спочатку видаляємо пов'язані записи
-    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE ingredient_id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE ingredient_id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
-    $stmt->close();
     
     // Тепер видаляємо сам інгредієнт
-    $stmt = $conn->prepare("DELETE FROM ingredienty WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM ingredienty WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З РЕЦЕПТАМИ
@@ -185,21 +162,14 @@ function deleteIngredient($id) {
 function getRetseptyByKavaId($kava_id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM retsepty WHERE kava_id = ? ORDER BY krok");
-    $stmt->bind_param("i", $kava_id);
+    $stmt = $conn->prepare("SELECT * FROM retsepty WHERE kava_id = :kava_id ORDER BY krok");
+    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    
     $retsepty = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $retsepty[] = $row;
-        }
+    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $retsepty[] = $row;
     }
-    
-    $stmt->close();
-    $conn->close();
     
     return $retsepty;
 }
@@ -208,45 +178,39 @@ function getRetseptyByKavaId($kava_id) {
 function addRetsept($kava_id, $krok, $instruktsiya) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("INSERT INTO retsepty (kava_id, krok, instruktsiya) VALUES (?, ?, ?)");
-    $stmt->bind_param("iis", $kava_id, $krok, $instruktsiya);
+    $stmt = $conn->prepare("INSERT INTO retsepty (kava_id, krok, instruktsiya) VALUES (:kava_id, :krok, :instruktsiya) RETURNING id");
+    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
+    $stmt->bindParam(':krok', $krok, PDO::PARAM_INT);
+    $stmt->bindParam(':instruktsiya', $instruktsiya, PDO::PARAM_STR);
     
-    $result = $stmt->execute();
-    $last_id = $conn->insert_id;
+    if ($stmt->execute()) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['id'];
+    }
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result ? $last_id : false;
+    return false;
 }
 
 // Оновити крок рецепту
 function updateRetsept($id, $krok, $instruktsiya) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("UPDATE retsepty SET krok = ?, instruktsiya = ? WHERE id = ?");
-    $stmt->bind_param("isi", $krok, $instruktsiya, $id);
+    $stmt = $conn->prepare("UPDATE retsepty SET krok = :krok, instruktsiya = :instruktsiya WHERE id = :id");
+    $stmt->bindParam(':krok', $krok, PDO::PARAM_INT);
+    $stmt->bindParam(':instruktsiya', $instruktsiya, PDO::PARAM_STR);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити крок рецепту
 function deleteRetsept($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("DELETE FROM retsepty WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM retsepty WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З ІНГРЕДІЄНТАМИ КАВИ
@@ -258,23 +222,16 @@ function getIngredientsForKava($kava_id) {
     $sql = "SELECT ki.kava_id, ki.ingredient_id, ki.kilkist, i.nazva, i.odynytsya 
             FROM kava_ingredienty ki 
             JOIN ingredienty i ON ki.ingredient_id = i.id 
-            WHERE ki.kava_id = ?";
+            WHERE ki.kava_id = :kava_id";
     
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $kava_id);
+    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    
     $ingredients = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $ingredients[] = $row;
-        }
+    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $ingredients[] = $row;
     }
-    
-    $stmt->close();
-    $conn->close();
     
     return $ingredients;
 }
@@ -284,43 +241,37 @@ function addIngredientToKava($kava_id, $ingredient_id, $kilkist) {
     $conn = connectDB();
     
     // Перевіряємо, чи вже існує такий запис
-    $stmt = $conn->prepare("SELECT * FROM kava_ingredienty WHERE kava_id = ? AND ingredient_id = ?");
-    $stmt->bind_param("ii", $kava_id, $ingredient_id);
+    $stmt = $conn->prepare("SELECT * FROM kava_ingredienty WHERE kava_id = :kava_id AND ingredient_id = :ingredient_id");
+    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
+    $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
     $stmt->execute();
-    $result = $stmt->get_result();
     
-    if ($result->num_rows > 0) {
+    if ($stmt->fetch(PDO::FETCH_ASSOC)) {
         // Якщо запис існує, оновлюємо кількість
-        $stmt->close();
-        $stmt = $conn->prepare("UPDATE kava_ingredienty SET kilkist = ? WHERE kava_id = ? AND ingredient_id = ?");
-        $stmt->bind_param("dii", $kilkist, $kava_id, $ingredient_id);
+        $stmt = $conn->prepare("UPDATE kava_ingredienty SET kilkist = :kilkist WHERE kava_id = :kava_id AND ingredient_id = :ingredient_id");
+        $stmt->bindParam(':kilkist', $kilkist, PDO::PARAM_STR);
+        $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
+        $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
     } else {
         // Якщо запису немає, створюємо новий
-        $stmt->close();
-        $stmt = $conn->prepare("INSERT INTO kava_ingredienty (kava_id, ingredient_id, kilkist) VALUES (?, ?, ?)");
-        $stmt->bind_param("iid", $kava_id, $ingredient_id, $kilkist);
+        $stmt = $conn->prepare("INSERT INTO kava_ingredienty (kava_id, ingredient_id, kilkist) VALUES (:kava_id, :ingredient_id, :kilkist)");
+        $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
+        $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
+        $stmt->bindParam(':kilkist', $kilkist, PDO::PARAM_STR);
     }
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити інгредієнт з кави
 function removeIngredientFromKava($kava_id, $ingredient_id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE kava_id = ? AND ingredient_id = ?");
-    $stmt->bind_param("ii", $kava_id, $ingredient_id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM kava_ingredienty WHERE kava_id = :kava_id AND ingredient_id = :ingredient_id");
+    $stmt->bindParam(':kava_id', $kava_id, PDO::PARAM_INT);
+    $stmt->bindParam(':ingredient_id', $ingredient_id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З ДЕСЕРТАМИ
@@ -328,16 +279,15 @@ function removeIngredientFromKava($kava_id, $ingredient_id) {
 // Отримати всі десерти
 function getAllDeserty() {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM deserty ORDER BY nazva");
+    $stmt = $conn->query("SELECT * FROM deserty ORDER BY nazva");
     
     $deserty = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $deserty[] = $row;
         }
     }
     
-    $conn->close();
     return $deserty;
 }
 
@@ -345,62 +295,57 @@ function getAllDeserty() {
 function getDesertById($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM deserty WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("SELECT * FROM deserty WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    $desert = $result->fetch_assoc();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $desert;
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Додати новий десерт
 function addDesert($nazva, $opis, $tsina, $vaha_gram, $dostupnyy = 1, $kategoria = null) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("INSERT INTO deserty (nazva, opis, tsina, vaha_gram, dostupnyy, kategoria) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssdiis", $nazva, $opis, $tsina, $vaha_gram, $dostupnyy, $kategoria);
+    $stmt = $conn->prepare("INSERT INTO deserty (nazva, opis, tsina, vaha_gram, dostupnyy, kategoria) VALUES (:nazva, :opis, :tsina, :vaha_gram, :dostupnyy, :kategoria) RETURNING id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
+    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
+    $stmt->bindParam(':vaha_gram', $vaha_gram, PDO::PARAM_INT);
+    $stmt->bindParam(':dostupnyy', $dostupnyy, PDO::PARAM_INT);
+    $stmt->bindParam(':kategoria', $kategoria, PDO::PARAM_STR);
     
-    $result = $stmt->execute();
-    $last_id = $conn->insert_id;
+    if ($stmt->execute()) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['id'];
+    }
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result ? $last_id : false;
+    return false;
 }
 
 // Оновити інформацію про десерт
 function updateDesert($id, $nazva, $opis, $tsina, $vaha_gram, $dostupnyy, $kategoria) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("UPDATE deserty SET nazva = ?, opis = ?, tsina = ?, vaha_gram = ?, dostupnyy = ?, kategoria = ? WHERE id = ?");
-    $stmt->bind_param("ssdiisi", $nazva, $opis, $tsina, $vaha_gram, $dostupnyy, $kategoria, $id);
+    $stmt = $conn->prepare("UPDATE deserty SET nazva = :nazva, opis = :opis, tsina = :tsina, vaha_gram = :vaha_gram, dostupnyy = :dostupnyy, kategoria = :kategoria WHERE id = :id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
+    $stmt->bindParam(':tsina', $tsina, PDO::PARAM_STR);
+    $stmt->bindParam(':vaha_gram', $vaha_gram, PDO::PARAM_INT);
+    $stmt->bindParam(':dostupnyy', $dostupnyy, PDO::PARAM_INT);
+    $stmt->bindParam(':kategoria', $kategoria, PDO::PARAM_STR);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити десерт
 function deleteDesert($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("DELETE FROM deserty WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM deserty WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З КАВ'ЯРНЯМИ
@@ -408,16 +353,15 @@ function deleteDesert($id) {
 // Отримати всі кав'ярні
 function getAllKavyarni() {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM kav_yarni ORDER BY nazva");
+    $stmt = $conn->query("SELECT * FROM kav_yarni ORDER BY nazva");
     
     $kavyarni = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $kavyarni[] = $row;
         }
     }
     
-    $conn->close();
     return $kavyarni;
 }
 
@@ -425,48 +369,45 @@ function getAllKavyarni() {
 function getKavyarnyaById($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM kav_yarni WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("SELECT * FROM kav_yarni WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    $kavyarnya = $result->fetch_assoc();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $kavyarnya;
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Додати нову кав'ярню
 function addKavyarnya($nazva, $adresa, $telefon, $grafik_roboty, $opys) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("INSERT INTO kav_yarni (nazva, adresa, telefon, grafik_roboty, opys) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $nazva, $adresa, $telefon, $grafik_roboty, $opys);
+    $stmt = $conn->prepare("INSERT INTO kav_yarni (nazva, adresa, telefon, grafik_roboty, opys) VALUES (:nazva, :adresa, :telefon, :grafik_roboty, :opys) RETURNING id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':adresa', $adresa, PDO::PARAM_STR);
+    $stmt->bindParam(':telefon', $telefon, PDO::PARAM_STR);
+    $stmt->bindParam(':grafik_roboty', $grafik_roboty, PDO::PARAM_STR);
+    $stmt->bindParam(':opys', $opys, PDO::PARAM_STR);
     
-    $result = $stmt->execute();
-    $last_id = $conn->insert_id;
+    if ($stmt->execute()) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['id'];
+    }
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result ? $last_id : false;
+    return false;
 }
 
 // Оновити інформацію про кав'ярню
 function updateKavyarnya($id, $nazva, $adresa, $telefon, $grafik_roboty, $opys) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("UPDATE kav_yarni SET nazva = ?, adresa = ?, telefon = ?, grafik_roboty = ?, opys = ? WHERE id = ?");
-    $stmt->bind_param("sssssi", $nazva, $adresa, $telefon, $grafik_roboty, $opys, $id);
+    $stmt = $conn->prepare("UPDATE kav_yarni SET nazva = :nazva, adresa = :adresa, telefon = :telefon, grafik_roboty = :grafik_roboty, opys = :opys WHERE id = :id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':adresa', $adresa, PDO::PARAM_STR);
+    $stmt->bindParam(':telefon', $telefon, PDO::PARAM_STR);
+    $stmt->bindParam(':grafik_roboty', $grafik_roboty, PDO::PARAM_STR);
+    $stmt->bindParam(':opys', $opys, PDO::PARAM_STR);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити кав'ярню
@@ -474,20 +415,15 @@ function deleteKavyarnya($id) {
     $conn = connectDB();
     
     // Спочатку оновлюємо котиків, які живуть у цій кав'ярні
-    $stmt = $conn->prepare("UPDATE kotyky SET kav_yarnya_id = 1 WHERE kav_yarnya_id = ?"); // Переміщуємо котиків у першу кав'ярню
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("UPDATE kotyky SET kav_yarnya_id = 1 WHERE kav_yarnya_id = :id"); // Переміщуємо котиків у першу кав'ярню
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
-    $stmt->close();
     
     // Тепер видаляємо саму кав'ярню
-    $stmt = $conn->prepare("DELETE FROM kav_yarni WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM kav_yarni WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З КОТИКАМИ
@@ -495,32 +431,30 @@ function deleteKavyarnya($id) {
 // Отримати всіх котиків
 function getAllKotyky() {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM kotyky ORDER BY imya");
+    $stmt = $conn->query("SELECT * FROM kotyky ORDER BY imya");
     
     $kotyky = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $kotyky[] = $row;
         }
     }
     
-    $conn->close();
     return $kotyky;
 }
 
 // Отримати випадкових котиків
 function getRandomKotyky($limit = 3) {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM kotyky ORDER BY RAND() LIMIT $limit");
+    $stmt = $conn->query("SELECT * FROM kotyky ORDER BY RANDOM() LIMIT $limit");
     
     $kotyky = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $kotyky[] = $row;
         }
     }
     
-    $conn->close();
     return $kotyky;
 }
 
@@ -528,38 +462,25 @@ function getRandomKotyky($limit = 3) {
 function getKotykById($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM kotyky WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("SELECT * FROM kotyky WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    $kotyk = $result->fetch_assoc();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $kotyk;
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Отримати котиків за ID кав'ярні
 function getKotykyByKavyarnyaId($kav_yarnya_id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM kotyky WHERE kav_yarnya_id = ? ORDER BY imya");
-    $stmt->bind_param("i", $kav_yarnya_id);
+    $stmt = $conn->prepare("SELECT * FROM kotyky WHERE kav_yarnya_id = :kav_yarnya_id ORDER BY imya");
+    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    
     $kotyky = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $kotyky[] = $row;
-        }
+    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $kotyky[] = $row;
     }
-    
-    $stmt->close();
-    $conn->close();
     
     return $kotyky;
 }
@@ -568,45 +489,46 @@ function getKotykyByKavyarnyaId($kav_yarnya_id) {
 function addKotyk($imya, $vik, $stat, $poroda, $harakterystyka, $kav_yarnya_id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("INSERT INTO kotyky (imya, vik, stat, poroda, harakterystyka, kav_yarnya_id) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sisssi", $imya, $vik, $stat, $poroda, $harakterystyka, $kav_yarnya_id);
+    $stmt = $conn->prepare("INSERT INTO kotyky (imya, vik, stat, poroda, harakterystyka, kav_yarnya_id) VALUES (:imya, :vik, :stat, :poroda, :harakterystyka, :kav_yarnya_id) RETURNING id");
+    $stmt->bindParam(':imya', $imya, PDO::PARAM_STR);
+    $stmt->bindParam(':vik', $vik, PDO::PARAM_INT);
+    $stmt->bindParam(':stat', $stat, PDO::PARAM_STR);
+    $stmt->bindParam(':poroda', $poroda, PDO::PARAM_STR);
+    $stmt->bindParam(':harakterystyka', $harakterystyka, PDO::PARAM_STR);
+    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    $last_id = $conn->insert_id;
+    if ($stmt->execute()) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['id'];
+    }
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result ? $last_id : false;
+    return false;
 }
 
 // Оновити інформацію про котика
 function updateKotyk($id, $imya, $vik, $stat, $poroda, $harakterystyka, $kav_yarnya_id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("UPDATE kotyky SET imya = ?, vik = ?, stat = ?, poroda = ?, harakterystyka = ?, kav_yarnya_id = ? WHERE id = ?");
-    $stmt->bind_param("sisssii", $imya, $vik, $stat, $poroda, $harakterystyka, $kav_yarnya_id, $id);
+    $stmt = $conn->prepare("UPDATE kotyky SET imya = :imya, vik = :vik, stat = :stat, poroda = :poroda, harakterystyka = :harakterystyka, kav_yarnya_id = :kav_yarnya_id WHERE id = :id");
+    $stmt->bindParam(':imya', $imya, PDO::PARAM_STR);
+    $stmt->bindParam(':vik', $vik, PDO::PARAM_INT);
+    $stmt->bindParam(':stat', $stat, PDO::PARAM_STR);
+    $stmt->bindParam(':poroda', $poroda, PDO::PARAM_STR);
+    $stmt->bindParam(':harakterystyka', $harakterystyka, PDO::PARAM_STR);
+    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити котика
 function deleteKotyk($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("DELETE FROM kotyky WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM kotyky WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З АКЦІЯМИ
@@ -614,16 +536,15 @@ function deleteKotyk($id) {
 // Отримати всі акції
 function getAllAktsiyi() {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM aktsiyi ORDER BY data_zakinchennya DESC");
+    $stmt = $conn->query("SELECT * FROM aktsiyi ORDER BY data_zakinchennya DESC");
     
     $aktsiyi = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $aktsiyi[] = $row;
         }
     }
     
-    $conn->close();
     return $aktsiyi;
 }
 
@@ -632,21 +553,14 @@ function getActiveAktsiyi() {
     $conn = connectDB();
     $current_date = date('Y-m-d');
     
-    $stmt = $conn->prepare("SELECT * FROM aktsiyi WHERE data_pochatku <= ? AND data_zakinchennya >= ? ORDER BY data_zakinchennya");
-    $stmt->bind_param("ss", $current_date, $current_date);
+    $stmt = $conn->prepare("SELECT * FROM aktsiyi WHERE data_pochatku <= :current_date AND data_zakinchennya >= :current_date ORDER BY data_zakinchennya");
+    $stmt->bindParam(':current_date', $current_date, PDO::PARAM_STR);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    
     $aktsiyi = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $aktsiyi[] = $row;
-        }
+    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $aktsiyi[] = $row;
     }
-    
-    $stmt->close();
-    $conn->close();
     
     return $aktsiyi;
 }
@@ -655,62 +569,57 @@ function getActiveAktsiyi() {
 function getAktsiyaById($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("SELECT * FROM aktsiyi WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $conn->prepare("SELECT * FROM aktsiyi WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     
-    $result = $stmt->get_result();
-    $aktsiya = $result->fetch_assoc();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $aktsiya;
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Додати нову акцію
 function addAktsiya($nazva, $opis, $znyzhka, $data_pochatku, $data_zakinchennya, $kav_yarnya_id = null) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("INSERT INTO aktsiyi (nazva, opis, znyzhka, data_pochatku, data_zakinchennya, kav_yarnya_id) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssdssi", $nazva, $opis, $znyzhka, $data_pochatku, $data_zakinchennya, $kav_yarnya_id);
+    $stmt = $conn->prepare("INSERT INTO aktsiyi (nazva, opis, znyzhka, data_pochatku, data_zakinchennya, kav_yarnya_id) VALUES (:nazva, :opis, :znyzhka, :data_pochatku, :data_zakinchennya, :kav_yarnya_id) RETURNING id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
+    $stmt->bindParam(':znyzhka', $znyzhka, PDO::PARAM_STR);
+    $stmt->bindParam(':data_pochatku', $data_pochatku, PDO::PARAM_STR);
+    $stmt->bindParam(':data_zakinchennya', $data_zakinchennya, PDO::PARAM_STR);
+    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    $last_id = $conn->insert_id;
+    if ($stmt->execute()) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['id'];
+    }
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result ? $last_id : false;
+    return false;
 }
 
 // Оновити інформацію про акцію
 function updateAktsiya($id, $nazva, $opis, $znyzhka, $data_pochatku, $data_zakinchennya, $kav_yarnya_id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("UPDATE aktsiyi SET nazva = ?, opis = ?, znyzhka = ?, data_pochatku = ?, data_zakinchennya = ?, kav_yarnya_id = ? WHERE id = ?");
-    $stmt->bind_param("ssdssii", $nazva, $opis, $znyzhka, $data_pochatku, $data_zakinchennya, $kav_yarnya_id, $id);
+    $stmt = $conn->prepare("UPDATE aktsiyi SET nazva = :nazva, opis = :opis, znyzhka = :znyzhka, data_pochatku = :data_pochatku, data_zakinchennya = :data_zakinchennya, kav_yarnya_id = :kav_yarnya_id WHERE id = :id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':opis', $opis, PDO::PARAM_STR);
+    $stmt->bindParam(':znyzhka', $znyzhka, PDO::PARAM_STR);
+    $stmt->bindParam(':data_pochatku', $data_pochatku, PDO::PARAM_STR);
+    $stmt->bindParam(':data_zakinchennya', $data_zakinchennya, PDO::PARAM_STR);
+    $stmt->bindParam(':kav_yarnya_id', $kav_yarnya_id, PDO::PARAM_INT);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // Видалити акцію
 function deleteAktsiya($id) {
     $conn = connectDB();
     
-    $stmt = $conn->prepare("DELETE FROM aktsiyi WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $result = $stmt->execute();
+    $stmt = $conn->prepare("DELETE FROM aktsiyi WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
+    return $stmt->execute();
 }
 
 // ФУНКЦІЇ ДЛЯ РОБОТИ З ІНГРЕДІЄНТАМИ
@@ -718,21 +627,32 @@ function deleteAktsiya($id) {
 // Отримати всі інгредієнти
 function getAllIngredients() {
     $conn = connectDB();
-    $result = $conn->query("SELECT * FROM ingredienty ORDER BY nazva");
+    $stmt = $conn->query("SELECT * FROM ingredienty ORDER BY nazva");
     
     $ingredienty = [];
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
+    if ($stmt) {
+        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $ingredienty[] = $row;
         }
     }
     
-    $conn->close();
     return $ingredienty;
 }
 
-// Отримати інгредієнт за ID
-
-
+// Додати новий інгредієнт
+function addIngredient($nazva, $odynytsya) {
+    $conn = connectDB();
+    
+    $stmt = $conn->prepare("INSERT INTO ingredienty (nazva, odynytsya) VALUES (:nazva, :odynytsya) RETURNING id");
+    $stmt->bindParam(':nazva', $nazva, PDO::PARAM_STR);
+    $stmt->bindParam(':odynytsya', $odynytsya, PDO::PARAM_STR);
+    
+    if ($stmt->execute()) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['id'];
+    }
+    
+    return false;
+}
 
 ?>

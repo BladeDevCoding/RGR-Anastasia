@@ -27,8 +27,9 @@ function fixDesertImageUrls() {
             // Обновляем URL в базе данных, если были исправления
             if ($foto_url !== $original_url) {
                 $conn = connectDB();
-                $stmt = $conn->prepare("UPDATE deserty SET foto_url = ? WHERE id = ?");
-                $stmt->bind_param("si", $foto_url, $desert['id']);
+                $stmt = $conn->prepare("UPDATE deserty SET foto_url = :foto_url WHERE id = :id");
+                $stmt->bindParam(':foto_url', $foto_url, PDO::PARAM_STR);
+                $stmt->bindParam(':id', $desert['id'], PDO::PARAM_INT);
                 $result = $stmt->execute();
                 
                 if ($result) {
@@ -39,9 +40,6 @@ function fixDesertImageUrls() {
                 } else {
                     echo "<p>Ошибка при обновлении URL для десерта " . htmlspecialchars($desert['nazva']) . "</p>";
                 }
-                
-                $stmt->close();
-                $conn->close();
             }
         }
     }
