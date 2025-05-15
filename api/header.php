@@ -7,17 +7,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <header>
     <div class="container header-container">
         <div class="logo">
-            <a href="/"><img src="/foto/logo.png" alt="Логотип" class="logo-image" style="width:30px; height:30px; display:inline-block; vertical-align:middle;" onerror="console.log('Ошибка загрузки логотипа'); this.onerror=null; this.src='https://via.placeholder.com/30x30?text=KK'"> KityKoffe</a>
+            <a href="index.php"><img src="foto/logo.png" alt="Логотип" class="logo-image" style="width:30px; height:30px; display:inline-block; vertical-align:middle;" onerror="console.log('Ошибка загрузки логотипа'); this.onerror=null; this.src='https://via.placeholder.com/30x30?text=KK'"> KityKoffe</a>
         </div>
 
         <nav>
             <ul>
-                <li><a href="/" <?php if($current_page == 'index.php') echo 'class="active"'; ?>>Головна</a></li>
-                <li><a href="/menu.php" <?php if($current_page == 'menu.php') echo 'class="active"'; ?>>Меню</a></li>
-                <li><a href="/kavarni.php" <?php if($current_page == 'kavarni.php') echo 'class="active"'; ?>>Кав'ярні</a></li>
-                <li><a href="/kotyky.php" <?php if($current_page == 'kotyky.php') echo 'class="active"'; ?>>Котики</a></li>
-                <li><a href="/aktsiyi.php" <?php if($current_page == 'aktsiyi.php') echo 'class="active"'; ?>>Акції</a></li>
-                <li><a href="/admin.php" <?php if($current_page == 'admin.php') echo 'class="active"'; ?>>Адмін</a></li>
+                <li><a href="index.php" <?php if($current_page == 'index.php') echo 'class="active"'; ?>>Головна</a></li>
+                <li><a href="menu.php" <?php if($current_page == 'menu.php') echo 'class="active"'; ?>>Меню</a></li>
+                <li><a href="kavarni.php" <?php if($current_page == 'kavarni.php') echo 'class="active"'; ?>>Кав'ярні</a></li>
+                <li><a href="kotyky.php" <?php if($current_page == 'kotyky.php') echo 'class="active"'; ?>>Котики</a></li>
+                <li><a href="aktsiyi.php" <?php if($current_page == 'aktsiyi.php') echo 'class="active"'; ?>>Акції</a></li>
+                <li><a href="admin.php" <?php if($current_page == 'admin.php') echo 'class="active"'; ?>>Адмін</a></li>
             </ul>
         </nav>
         <div class="accessibility-controls">
