@@ -34,7 +34,7 @@ sort($categories);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Меню - KityKoffe</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/api/styles.css?v=<?php echo time(); ?>">
     <style>
         .menu-container {
             max-width: 1200px;

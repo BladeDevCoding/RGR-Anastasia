@@ -12,5 +12,7 @@
     { "src": "/api/foto_kafe/(.*)", "dest": "/api/foto_kafe/$1" },
     { "src": "/api/foto_deserts/(.*)", "dest": "/api/foto_deserts/$1" },
     { "src": "/(.*)", "dest": "/api/index.php" }
-  ]
+  ],
+  "buildCommand": "mkdir -p public && cp -r api/styles.css public/api/",
+  "outputDirectory": "public"
 }

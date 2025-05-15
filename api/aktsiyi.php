@@ -26,7 +26,7 @@ $active_aktsiyi = getActiveAktsiyi();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $single_aktsiya ? htmlspecialchars($single_aktsiya['nazva']) : 'Акції'; ?> - KityKoffe</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/api/styles.css?v=<?php echo time(); ?>">
     <style>
         .aktsiyi-container {
             max-width: 1200px;

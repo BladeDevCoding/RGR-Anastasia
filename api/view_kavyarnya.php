@@ -26,7 +26,7 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($kavyarnya['nazva']); ?> - KityKoffe</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/api/styles.css?v=<?php echo time(); ?>">
     <style>
         .details-container {
             max-width: 800px;

@@ -23,7 +23,7 @@ if ($kavyarnya_id > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $single_kavyarnya ? htmlspecialchars($single_kavyarnya['nazva']) : 'Наші кав\'ярні'; ?> - KityKoffe</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/api/styles.css?v=<?php echo time(); ?>">
     <style>
         .kavarni-container {
             max-width: 1200px;
